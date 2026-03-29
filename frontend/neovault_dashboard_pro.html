@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — NeoVault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --blue:#1652F0;--blue-dark:#0E3FBB;--blue-bg:#EEF2FF;
+            --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+            --gray-300:#D1D5DB;--gray-400:#9CA3AF;--gray-500:#6B7280;
+            --gray-600:#4B5563;--gray-700:#374151;--gray-900:#111827;
+            --red:#DC2626;--redbg:#FEF2F2;
+            --green:#059669;--greenbg:#F0FDF4;
+            --amber:#D97706;--amberbg:#FFFBEB;
+            --sidebar:240px;
+        }
+        body{font-family:'Inter',sans-serif;background:var(--gray-50);color:var(--gray-900);min-height:100vh}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar);background:#fff;border-right:1px solid var(--gray-200);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:50}
+        .sb-logo{padding:20px 20px 18px;border-bottom:1px solid var(--gray-200)}
+        .sb-brand{display:flex;align-items:center;gap:9px}
+        .sb-mark{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+        .sb-name{font-size:16px;font-weight:700;color:var(--gray-900);letter-spacing:-.3px}
+        .sb-nav{padding:16px 12px;flex:1;overflow-y:auto}
+        .sb-section{font-size:10.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-400);padding:0 8px;margin-bottom:6px;margin-top:18px}
+        .sb-section:first-child{margin-top:0}
+        .sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--gray-600);font-size:13.5px;font-weight:500;text-decoration:none;transition:all .15s;margin-bottom:2px}
+        .sb-item:hover{background:var(--gray-100);color:var(--gray-900)}
+        .sb-item.active{background:var(--blue-bg);color:var(--blue)}
+        .sb-item .icon{width:18px;text-align:center;font-size:15px}
+        .sb-foot{padding:14px 12px;border-top:1px solid var(--gray-200)}
+        .sb-user{display:flex;align-items:center;gap:9px;padding:9px 10px;background:var(--gray-50);border-radius:8px;cursor:pointer}
+        .sb-avatar{width:32px;height:32px;background:linear-gradient(135deg,#6366F1,#8B5CF6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;flex-shrink:0}
+        .sb-user-info{flex:1;min-width:0}
+        .sb-user-name{font-size:13px;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .sb-user-role{font-size:11px;color:var(--gray-500)}
+        .sb-dot{width:8px;height:8px;background:#10B981;border-radius:50%;flex-shrink:0}
+
+        /* MAIN */
+        .main{margin-left:var(--sidebar);min-height:100vh;display:flex;flex-direction:column}
+        .topbar{background:#fff;border-bottom:1px solid var(--gray-200);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+        .tb-left h1{font-size:17px;font-weight:700;color:var(--gray-900);letter-spacing:-.3px}
+        .tb-left p{font-size:12px;color:var(--gray-500);margin-top:1px}
+        .tb-right{display:flex;align-items:center;gap:10px}
+        .shield-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--greenbg);border:1px solid #BBF7D0;border-radius:20px;font-size:12px;font-weight:600;color:var(--green);cursor:pointer}
+        .shield-pill .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+        .btn{padding:7px 14px;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+        .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dark)}
+        .btn-outline{background:#fff;color:var(--gray-700);border:1px solid var(--gray-300)}.btn-outline:hover{border-color:var(--gray-400)}
+        .btn-sm{padding:6px 12px;font-size:12px}
+        .btn-danger{background:var(--redbg);color:var(--red);border:1px solid #FECACA}
+
+        /* CONTENT */
+        .content{padding:24px 28px;flex:1}
+        .greeting{margin-bottom:22px}
+        .greeting h2{font-size:20px;font-weight:700;color:var(--gray-900);letter-spacing:-.4px}
+        .greeting p{font-size:13px;color:var(--gray-500);margin-top:3px}
+
+        /* STAT STRIP */
+        .stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+        .stat-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px 18px}
+        .stat-label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-400);margin-bottom:7px}
+        .stat-val{font-size:22px;font-weight:700;color:var(--gray-900);line-height:1}
+        .stat-change{font-size:11.5px;color:var(--gray-500);margin-top:4px}
+        .stat-val.green{color:var(--green)}.stat-val.blue{color:var(--blue)}.stat-val.amber{color:var(--amber)}.stat-val.red{color:var(--red)}
+
+        /* ACCOUNTS */
+        .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+        .sec-title{font-size:15px;font-weight:700;color:var(--gray-900)}
+        .account-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:22px}
+        .acct-card{border-radius:12px;padding:22px;color:#fff;position:relative;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s}
+        .acct-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+        .acct-card.checking{background:linear-gradient(135deg,#1652F0 0%,#0E3FBB 100%)}
+        .acct-card.savings{background:linear-gradient(135deg,#059669 0%,#047857 100%)}
+        .acct-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
+        .acct-type{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.85;margin-bottom:14px}
+        .acct-bal{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
+        .acct-bal-label{font-size:11px;opacity:.75;margin-bottom:16px}
+        .acct-num{font-size:12px;letter-spacing:2px;opacity:.75;font-family:monospace;margin-bottom:16px}
+        .acct-actions{display:flex;gap:8px}
+        .acct-btn{flex:1;padding:8px 0;border-radius:6px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;border:none;transition:all .15s}
+        .acct-btn.primary{background:rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(4px)}
+        .acct-btn.primary:hover{background:rgba(255,255,255,.3)}
+        .acct-btn.secondary{background:rgba(255,255,255,.1);color:#fff}
+        .acct-btn.secondary:hover{background:rgba(255,255,255,.2)}
+        .add-acct{display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--gray-300);border-radius:12px;padding:22px;color:var(--gray-500);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;min-height:150px}
+        .add-acct:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+
+        /* TWO COL */
+        .two-col{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:22px}
+
+        /* PANEL */
+        .panel{background:#fff;border:1px solid var(--gray-200);border-radius:10px;overflow:hidden}
+        .panel-head{padding:14px 18px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between}
+        .panel-title{font-size:14px;font-weight:700;color:var(--gray-900)}
+
+        /* TRANSACTIONS */
+        .txn-row{
+            display:grid;
+            grid-template-columns: 28px 1fr 160px;
+            align-items:center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom:1px solid var(--gray-100);
+            transition:background .15s;
+            cursor:pointer;
+        }
+        .txn-row:last-child{border-bottom:none}
+        .txn-row:hover{background:rgba(70,178,255,.06)}
+        .txn-icon{
+            width:28px;height:28px;border-radius:9px;
+            position:relative;
+            display:flex;align-items:center;justify-content:center;
+            flex-shrink:0;
+            border:1px solid rgba(0,0,0,.02);
+        }
+        .txn-icon.out{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25)}
+        .txn-icon.in{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.25)}
+        .txn-icon.pay{background:rgba(0,212,255,.10);border-color:rgba(0,212,255,.25)}
+        .txn-icon::after{
+            font-size:12px;
+            font-weight:800;
+            color:inherit;
+        }
+        .txn-icon.out::after{content:'↓';color:var(--red)}
+        .txn-icon.in::after{content:'↑';color:var(--green)}
+        .txn-icon.pay::after{content:'$';color:#00D4FF}
+
+        .txn-info{min-width:0}
+        .txn-name{font-size:13.5px;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .txn-meta{font-size:11px;color:var(--gray-500);margin-top:1px}
+        .txn-flag{font-size:10px;font-weight:700;padding:1px 6px;background:var(--amberbg);color:var(--amber);border-radius:4px;margin-left:6px}
+        .txn-amt{text-align:right}
+        .txn-amount{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+        .txn-amount.neg{color:var(--red)}.txn-amount.pos{color:var(--green)}
+        .txn-date{font-size:11px;color:var(--gray-400);margin-top:1px}
+
+        /* TOKENSHIELD STATUS PANEL */
+        .shield-panel{background:#fff;border:1px solid var(--gray-200);border-radius:10px;overflow:hidden}
+        .shield-header{padding:14px 18px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between}
+        .shield-title{font-size:14px;font-weight:700;color:var(--gray-900);display:flex;align-items:center;gap:7px}
+        .shield-body{padding:18px}
+        .status-big{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px 0;border-radius:10px;margin-bottom:16px}
+        .status-big.safe{background:var(--greenbg);border:1px solid #BBF7D0}
+        .status-big.warn{background:var(--amberbg);border:1px solid #FDE68A}
+        .status-big.danger{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.35)}
+        .status-big.critical{background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.45);box-shadow:0 0 0 4px rgba(239,68,68,.08) inset}
+        .status-icon{font-size:36px;margin-bottom:8px}
+        .status-label{font-size:16px;font-weight:700;color:var(--green)}
+        .status-label.warn{color:var(--amber)}
+        .status-label.danger{color:var(--red)}
+        .status-label.critical{color:var(--red)}
+        .status-desc{font-size:12px;color:var(--gray-500);margin-top:4px;text-align:center}
+
+        /* Shield radar (engine visualization) */
+        .shield-radar{
+            width:92px;height:92px;border-radius:999px;
+            position:relative;
+            background: radial-gradient(circle at 30% 30%, rgba(70,178,255,.16), rgba(255,255,255,0) 60%);
+            border:1px solid rgba(70,178,255,.15);
+            box-shadow: 0 18px 60px rgba(0,0,0,.35);
+            margin-bottom:10px;
+        }
+        .shield-radar-ring{
+            position:absolute;
+            inset:10px;
+            border-radius:999px;
+            border:1px solid rgba(70,178,255,.20);
+        }
+        .shield-radar-ring.ring-2{ inset:22px; opacity:.85; }
+        .shield-radar-ring.ring-3{ inset:34px; opacity:.75; }
+        .shield-radar-needle{
+            position:absolute;
+            left:50%;top:50%;
+            width:2px;height:38px;
+            background: rgba(0,212,255,.85);
+            border-radius:2px;
+            transform-origin: bottom center;
+            transform: translate(-50%,-100%) rotate(0deg);
+            box-shadow: 0 0 18px rgba(0,212,255,.35);
+            transition: transform .35s cubic-bezier(0.2,0.8,0.2,1), background .2s ease;
+        }
+        .shield-radar-center{
+            position:absolute;
+            left:50%;top:50%;
+            width:10px;height:10px;border-radius:50%;
+            transform: translate(-50%,-50%);
+            background: rgba(0,212,255,.9);
+            box-shadow: 0 0 18px rgba(0,212,255,.35);
+        }
+
+        .status-big.safe .shield-radar{ border-color: rgba(34,197,94,.28); }
+        .status-big.safe .shield-radar-ring{ border-color: rgba(34,197,94,.32); }
+        .status-big.safe .shield-radar-needle{ background: rgba(34,197,94,.95); box-shadow: 0 0 18px rgba(34,197,94,.35); }
+        .status-big.safe .shield-radar-center{ background: rgba(34,197,94,.95); box-shadow: 0 0 18px rgba(34,197,94,.35); }
+
+        .status-big.warn .shield-radar{ border-color: rgba(251,191,36,.32); }
+        .status-big.warn .shield-radar-ring{ border-color: rgba(251,191,36,.38); }
+        .status-big.warn .shield-radar-needle{ background: rgba(251,191,36,.95); box-shadow: 0 0 18px rgba(251,191,36,.35); }
+        .status-big.warn .shield-radar-center{ background: rgba(251,191,36,.95); box-shadow: 0 0 18px rgba(251,191,36,.35); }
+
+        .status-big.critical .shield-radar{ border-color: rgba(239,68,68,.35); }
+        .status-big.critical .shield-radar-ring{ border-color: rgba(239,68,68,.42); }
+        .status-big.critical .shield-radar-needle{ background: rgba(239,68,68,.95); box-shadow: 0 0 18px rgba(239,68,68,.35); }
+        .status-big.critical .shield-radar-center{ background: rgba(239,68,68,.95); box-shadow: 0 0 18px rgba(239,68,68,.35); }
+
+        .shield-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+        .sh-stat{padding:12px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200)}
+        .sh-stat-val{font-size:18px;font-weight:700;color:var(--gray-900);line-height:1}
+        .sh-stat-label{font-size:11px;color:var(--gray-500);margin-top:3px}
+        .last-activity{font-size:12px;color:var(--gray-500);text-align:center;padding-top:8px;border-top:1px solid var(--gray-200)}
+        
+        /* SECURITY EVENTS */
+        .security-events{margin-top:14px}
+        .security-events-title{font-size:12px;font-weight:700;color:var(--gray-700);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+        .security-events-title small{font-weight:600;color:var(--gray-500)}
+        .security-event{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--gray-50);border:1px solid var(--gray-200);margin-bottom:8px}
+        .security-event:last-child{margin-bottom:0}
+        .security-sev{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+        .security-sev.low{background:rgba(16,185,129,.12);color:var(--green)}
+        .security-sev.medium{background:rgba(245,158,11,.12);color:var(--amber)}
+        .security-sev.high{background:rgba(239,68,68,.12);color:var(--red)}
+        .security-sev.critical{background:rgba(220,38,38,.12);color:var(--red)}
+        .security-event-info{min-width:0}
+        .security-event-title{font-size:13px;font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+        .security-event-meta{font-size:11px;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        /* Simple badges (used by cards modal) */
+        .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.2px}
+        .badge-primary{background:rgba(0,115,230,.12);color:#0052CC;border:1px solid rgba(0,115,230,.25)}
+        .badge-danger{background:rgba(220,38,38,.10);color:var(--red);border:1px solid rgba(220,38,38,.28)}
+
+        /* QUICK ACTIONS */
+        .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+        .qa-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s}
+        .qa-card:hover{border-color:var(--blue);background:var(--blue-bg)}
+        .qa-icon{font-size:24px;margin-bottom:8px}
+        .qa-label{font-size:12px;font-weight:600;color:var(--gray-700)}
+
+        /* MODAL */
+        .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+        .ov.show{display:flex}
+        .modal{background:#fff;border-radius:14px;padding:26px;width:90%;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,.12)}
+        .modal-title{font-size:17px;font-weight:700;color:var(--gray-900);margin-bottom:4px}
+        .modal-sub{font-size:13px;color:var(--gray-500);margin-bottom:20px}
+        .mfg{margin-bottom:14px}
+        .mfl{display:block;font-size:12.5px;font-weight:500;color:var(--gray-700);margin-bottom:5px}
+        .mfi,.mfs{width:100%;padding:9px 12px;border:1px solid var(--gray-300);border-radius:7px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--gray-900);outline:none;transition:border-color .15s,box-shadow .15s;background:#fff}
+        .mfi:focus,.mfs:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(22,82,240,.07)}
+        .mfs option{background:#fff}
+        .modal-foot{display:flex;gap:10px;margin-top:20px}
+        .modal-foot .btn{flex:1;justify-content:center;padding:10px}
+        .alert{padding:9px 12px;border-radius:7px;font-size:13px;margin-bottom:13px;display:none;align-items:center;gap:7px}
+        .alert.show{display:flex}
+        .aerr{background:var(--redbg);color:var(--red);border:1px solid #FECACA}
+        .aok{background:var(--greenbg);color:var(--green);border:1px solid #BBF7D0}
+
+        /* TOAST */
+        #toasts{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+        .toast{background:#fff;border-radius:10px;padding:12px 16px;min-width:280px;box-shadow:0 4px 24px rgba(0,0,0,.1);border-left:3px solid var(--blue);display:flex;align-items:flex-start;gap:10px;animation:tin .3s ease}
+        .toast.ok{border-left-color:var(--green)}.toast.err{border-left-color:var(--red)}.toast.warn{border-left-color:var(--amber)}
+        @keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+        .t-ico{font-size:16px}.t-body{flex:1}.t-title{font-size:13px;font-weight:600;color:var(--gray-900)}.t-msg{font-size:12px;color:var(--gray-500);margin-top:2px}
+
+        /* EMPTY */
+        .empty{padding:32px;text-align:center;color:var(--gray-400);font-size:13px}
+
+        @media(max-width:1000px){.two-col{grid-template-columns:1fr}.stat-strip{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:720px){.sidebar{display:none}.main{margin-left:0}.quick-grid{grid-template-columns:repeat(2,1fr)}}
+
+        /* ============================================================
+           ENTERPRISE DARK / NEON-GLASS THEME (UI v2)
+           ============================================================ */
+        :root{
+            --gray-50:#F8FAFC;
+            --gray-100:#F1F5F9;
+            --gray-200:#E2E8F0;
+            --gray-300:#CBD5E1;
+            --gray-400:#94A3B8;
+            --gray-500:#64748B;
+            --gray-600:#475569;
+            --gray-700:#334155;
+            --gray-900:#0B1220;
+
+            --blue:#0052CC;
+            --blue-dark:#003E7E;
+            --blue-bg: rgba(0,82,204,.10);
+
+            --green:#059669;
+            --greenbg: rgba(5,150,105,.12);
+
+            --amber:#D97706;
+            --amberbg: rgba(217,119,6,.12);
+
+            --red:#DC2626;
+            --redbg: rgba(220,38,38,.10);
+        }
+
+        body{
+            background:
+                radial-gradient(1200px 600px at 15% -5%, rgba(0,82,204,.13), transparent 55%),
+                radial-gradient(1000px 500px at 95% 10%, rgba(0,212,255,.10), transparent 52%),
+                radial-gradient(900px 500px at 40% 105%, rgba(5,150,105,.09), transparent 55%),
+                linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 100%);
+        }
+
+        body::before{
+            content:'';
+            position:fixed;
+            inset:0;
+            pointer-events:none;
+            z-index:-1;
+            background:
+                linear-gradient(to right, rgba(0,82,204,.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,82,204,.12) 1px, transparent 1px);
+            background-size: 56px 56px;
+            mask-image: radial-gradient(circle at 40% 20%, rgba(0,0,0,1), rgba(0,0,0,0) 60%);
+            opacity:.35;
+        }
+
+        .sidebar{
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(10px);
+            border-right-color: var(--gray-200);
+        }
+        .sb-item{color:var(--gray-500)}
+        .sb-item:hover{background:rgba(0,82,204,.06);color:var(--gray-900)}
+        .sb-item.active{background:rgba(0,82,204,.12);color:var(--blue)}
+        .sb-foot .sb-user{background:rgba(255,255,255,.65)}
+
+        .topbar{
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(10px);
+            border-bottom-color: var(--gray-200);
+        }
+
+        .stat-card,
+        .panel,
+        .shield-panel,
+        .modal{
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(10px);
+            border-color: rgba(0, 82, 204, 0.16);
+            color: var(--gray-900);
+            box-shadow: 0 12px 40px rgba(2,6,23,.06);
+        }
+
+        .panel-head,
+        .shield-header{
+            border-bottom-color: rgba(0, 82, 204, 0.16);
+        }
+
+        .txn-row:hover{background: rgba(0,82,204,.05)}
+        .acct-btn.primary{border:1px solid rgba(0,82,204,.18)}
+        .acct-btn.secondary{border:1px solid rgba(15,23,42,.08)}
+
+        .ov{background:rgba(0,0,0,.55)}
+        .alert{background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08)}
+
+        /* Enterprise banking surface overrides */
+        .stat-strip .stat-card,
+        .panel,
+        .shield-panel{
+            background: rgba(255,255,255,0.88) !important;
+            border: 1px solid rgba(0,82,204,0.16) !important;
+            box-shadow: 0 18px 60px rgba(2,6,23,.06) !important;
+        }
+        .shield-panel{
+            border-color: rgba(0,212,255,0.20) !important;
+        }
+
+        .acct-card{
+            background: rgba(255,255,255,0.92) !important;
+            border: 1px solid rgba(15,23,42,0.08) !important;
+            color: var(--gray-900) !important;
+            box-shadow: 0 16px 50px rgba(2,6,23,.07) !important;
+        }
+        .acct-card::before{
+            content:'';
+            position:absolute;
+            inset:-1px;
+            border-radius:14px;
+            padding:1px;
+            background: linear-gradient(135deg, rgba(0,82,204,.25), rgba(0,212,255,.14), rgba(5,150,105,.12));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events:none;
+            opacity:.95;
+        }
+        .acct-card.checking{border-color: rgba(70,178,255,.35) !important;}
+        .acct-card.savings{border-color: rgba(34,197,94,.28) !important;}
+
+        .acct-type{
+            opacity:1 !important;
+            color: var(--gray-500) !important;
+            font-size: 11px !important;
+        }
+        .acct-bal-label{opacity: .75 !important}
+        .acct-num{opacity: .9 !important}
+
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sb-logo"><div class="sb-brand"><div class="sb-mark">N</div><span id="brand-name" class="sb-name" style="color:#fff;">NeoVault</span></div></div>
+    <nav class="sb-nav">
+        <div class="sb-section">Banking</div>
+        <a class="sb-item active" href="#"><span class="icon">D</span>Dashboard</a>
+        <a class="sb-item" href="#" onclick="openTransfer()"><span class="icon">T</span>Transfer Money</a>
+        <a class="sb-item" href="#" onclick="scrollToTransactions()"><span class="icon">TX</span>Transactions</a>
+        <a class="sb-item" href="#" onclick="openCards()"><span class="icon">C</span>Cards</a>
+        <a class="sb-item" href="#" onclick="toast('info','Statements','Statement downloads coming soon.')"><span class="icon">ST</span>Statements</a>
+        <div class="sb-section">Account</div>
+        <a class="sb-item" href="#" onclick="showProfile()"><span class="icon">P</span>Profile</a>
+        <a class="sb-item" href="#" onclick="toast('info','Settings','Settings panel coming soon.')"><span class="icon">S</span>Settings</a>
+    </nav>
+    <div class="sb-foot">
+        <div class="sb-user">
+            <div class="sb-avatar" id="sb-av">U</div>
+            <div class="sb-user-info"><div class="sb-user-name" id="sb-name">Loading…</div><div class="sb-user-role">Personal Account</div></div>
+            <div class="sb-dot"></div>
+        </div>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="topbar">
+        <div class="tb-left">
+            <h1 id="greeting">Good morning</h1>
+            <p id="datestr">Loading…</p>
+        </div>
+        <div class="tb-right">
+            <div class="shield-pill" onclick="scrollToShield()" title="TokenShield Security Status">
+                <div class="dot"></div><span>TokenShield™ Active</span>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="openTransfer()">↗ Transfer</button>
+            <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- GREETING -->
+        <div class="greeting">
+            <h2 id="greet-name">Welcome back</h2>
+            <p id="greet-date">Today is a great day to manage your finances.</p>
+        </div>
+
+        <!-- STATS -->
+        <div class="stat-strip">
+            <div class="stat-card">
+                <div class="stat-label">Total Balance</div>
+                <div class="stat-val blue" id="st-total">—</div>
+                <div class="stat-change" id="st-total-sub">Across all accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Sessions</div>
+                <div class="stat-val" id="st-sessions">—</div>
+                <div class="stat-change">Across your devices</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Monthly Spending</div>
+                <div class="stat-val green" id="st-month">—</div>
+                <div class="stat-change">Last 30 days outflow</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Account Status</div>
+                <div class="stat-val green" id="st-status">Active</div>
+                <div class="stat-change" id="st-status-sub">No issues detected</div>
+            </div>
+        </div>
+
+        <!-- ACCOUNTS -->
+        <div class="sec-head">
+            <span class="sec-title">Your Accounts</span>
+            <button class="btn btn-outline btn-sm" onclick="openNewAcct()">+ New Account</button>
+        </div>
+        <div class="account-grid" id="acct-grid">
+            <div class="empty">Loading accounts…</div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="sec-head" style="margin-bottom:12px"><span class="sec-title">Quick Actions</span></div>
+        <div class="quick-grid" style="margin-bottom:22px">
+            <div class="qa-card" onclick="openTransfer()"><div class="qa-icon">TR</div><div class="qa-label">Send Money</div></div>
+            <div class="qa-card" onclick="openDeposit()"><div class="qa-icon">$</div><div class="qa-label">Cash Deposit</div></div>
+            <div class="qa-card" onclick="openPayBill()"><div class="qa-icon">PB</div><div class="qa-label">Pay Bills</div></div>
+            <div class="qa-card" onclick="openCards()"><div class="qa-icon">CD</div><div class="qa-label">Cards</div></div>
+        </div>
+
+        <!-- TRANSACTIONS + SHIELD -->
+        <div class="two-col">
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Recent Transactions</span>
+                    <button class="btn btn-outline btn-sm" onclick="loadTxns()">↺ Refresh</button>
+                </div>
+                <div id="txn-list"><div class="empty">Loading…</div></div>
+            </div>
+
+            <!-- TOKENSHIELD STATUS -->
+            <div class="shield-panel" id="shield-section">
+                <div class="shield-header">
+                <span class="shield-title">TokenShield Security Engine</span>
+                    <span style="font-size:11px;color:var(--gray-400)">Security Status</span>
+                </div>
+                <div class="shield-body">
+                    <div class="status-big safe" id="shield-status-box">
+                        <div class="shield-radar" aria-hidden="true">
+                            <div class="shield-radar-ring"></div>
+                            <div class="shield-radar-ring ring-2"></div>
+                            <div class="shield-radar-ring ring-3"></div>
+                            <div class="shield-radar-needle" id="shield-radar-needle"></div>
+                            <div class="shield-radar-center"></div>
+                        </div>
+                        <div class="status-label" id="shield-status-label">Account Secure</div>
+                        <div class="status-desc" id="shield-status-desc">No threats detected on your account</div>
+                    </div>
+                    <div class="shield-stats">
+                        <div class="sh-stat">
+                            <div class="sh-stat-val" id="sh-sessions">—</div>
+                            <div class="sh-stat-label">Active Sessions</div>
+                        </div>
+                        <div class="sh-stat">
+                            <div class="sh-stat-val" id="sh-actions">0</div>
+                            <div class="sh-stat-label">Actions (24h)</div>
+                        </div>
+                        <div class="sh-stat">
+                            <div class="sh-stat-val" id="sh-score" style="color:var(--green)">Low</div>
+                            <div class="sh-stat-label">Risk Level</div>
+                        </div>
+                        <div class="sh-stat">
+                            <div class="sh-stat-val" id="sh-duration">—</div>
+                            <div class="sh-stat-label">Session Time</div>
+                        </div>
+                    </div>
+                    <div class="last-activity">Session IP: <strong id="sh-ip">—</strong></div>
+                    <div class="security-events" id="security-events">
+                        <div class="security-events-title">
+                            <span>Live Security Events</span>
+                            <small id="security-events-sub">Last 10 markers</small>
+                        </div>
+                        <div id="security-events-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TRANSFER MODAL -->
+<div class="ov" id="ov-transfer">
+    <div class="modal">
+        <div class="modal-title">Transfer Money</div>
+        <div class="modal-sub">Send funds to any NeoVault account securely</div>
+        <div class="alert aerr" id="tf-err"><span>⚠</span><span id="tf-err-t"></span></div>
+        <div class="mfg"><label class="mfl">From Account</label><select class="mfs" id="tf-from"></select></div>
+        <div class="mfg"><label class="mfl">To Account Number</label><input class="mfi" id="tf-to" type="text" placeholder="e.g. NV12345678"></div>
+        <div class="mfg"><label class="mfl">Amount (INR)</label><input class="mfi" id="tf-amt" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+        <div class="mfg"><label class="mfl">Description (optional)</label><input class="mfi" id="tf-desc" type="text" placeholder="What is this for?"></div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-transfer')">Cancel</button>
+            <button class="btn btn-primary" id="tf-btn" onclick="doTransfer()">Confirm Transfer</button>
+        </div>
+    </div>
+</div>
+
+<!-- NEW ACCOUNT MODAL -->
+<div class="ov" id="ov-newacct">
+    <div class="modal">
+        <div class="modal-title">Open New Account</div>
+        <div class="modal-sub">Choose an account type to get started</div>
+        <div class="mfg"><label class="mfl">Account Type</label>
+            <select class="mfs" id="na-type"><option value="checking">Checking Account</option><option value="savings">Savings Account</option></select>
+        </div>
+        <div class="mfg"><label class="mfl">Initial Deposit (INR)</label><input class="mfi" id="na-dep" type="number" min="0" step="0.01" value="0" placeholder="0.00"></div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-newacct')">Cancel</button>
+            <button class="btn btn-primary" id="na-btn" onclick="doNewAcct()">Open Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="ov" id="ov-deposit">
+    <div class="modal">
+        <div class="modal-title">Cash Deposit</div>
+        <div class="modal-sub">Fund one of your active accounts securely</div>
+        <div class="alert aerr" id="dp-err"><span>⚠</span><span id="dp-err-t"></span></div>
+        <div class="mfg"><label class="mfl">To Account</label><select class="mfs" id="dp-to"></select></div>
+        <div class="mfg"><label class="mfl">Amount (INR)</label><input class="mfi" id="dp-amt" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+        <div class="mfg"><label class="mfl">Description (optional)</label><input class="mfi" id="dp-desc" type="text" placeholder="Cash Deposit"></div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-deposit')">Cancel</button>
+            <button class="btn btn-primary" id="dp-btn" onclick="doDeposit()">Confirm Deposit</button>
+        </div>
+    </div>
+</div>
+
+<!-- PAY BILL MODAL -->
+<div class="ov" id="ov-paybill">
+    <div class="modal">
+        <div class="modal-title">Pay Bill</div>
+        <div class="modal-sub">Use TokenShield protection for sensitive payments</div>
+        <div class="alert aerr" id="pb-err"><span>⚠</span><span id="pb-err-t"></span></div>
+        <div class="mfg"><label class="mfl">From Account</label><select class="mfs" id="pb-from"></select></div>
+        <div class="mfg"><label class="mfl">Payee Name</label><input class="mfi" id="pb-name" type="text" placeholder="Electric Co."></div>
+        <div class="mfg"><label class="mfl">Payee Account (optional)</label><input class="mfi" id="pb-acct" type="text" placeholder="Optional reference"></div>
+        <div class="mfg"><label class="mfl">Amount (INR)</label><input class="mfi" id="pb-amt" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+        <div class="mfg"><label class="mfl">Description (optional)</label><input class="mfi" id="pb-desc" type="text" placeholder="Monthly bill payment"></div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-paybill')">Cancel</button>
+            <button class="btn btn-primary" id="pb-btn" onclick="doPayBill()">Confirm Payment</button>
+        </div>
+    </div>
+</div>
+
+<!-- CARDS MODAL -->
+<div class="ov" id="ov-cards">
+    <div class="modal" style="max-width:860px">
+        <div class="modal-title">Cards</div>
+        <div class="modal-sub">Block or unblock cards connected to your accounts</div>
+        <div class="mfg">
+            <div class="mfl">Status</div>
+            <div style="font-size:13px;color:var(--gray-500)">Tip: Use "Block" immediately after a suspicious activity alert.</div>
+        </div>
+        <div style="max-height:520px;overflow:auto;border:1px solid var(--gray-200);border-radius:10px">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                    <tr style="text-align:left;background:var(--gray-50)">
+                        <th style="padding:12px 14px;border-bottom:1px solid var(--gray-200)">Card</th>
+                        <th style="padding:12px 14px;border-bottom:1px solid var(--gray-200)">Type</th>
+                        <th style="padding:12px 14px;border-bottom:1px solid var(--gray-200)">Network</th>
+                        <th style="padding:12px 14px;border-bottom:1px solid var(--gray-200)">Status</th>
+                        <th style="padding:12px 14px;border-bottom:1px solid var(--gray-200)">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cards-tbody">
+                    <tr><td colspan="5" style="padding:16px 14px;color:var(--gray-500)">Loading cards…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-cards')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ACCOUNT DETAILS MODAL -->
+<div class="ov" id="ov-account-details">
+    <div class="modal" style="max-width:860px">
+        <div class="modal-title">Account Details</div>
+        <div class="modal-sub">Realtime view backed by your ledger</div>
+        <div id="acct-details-top" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+            <div class="sh-stat" style="flex:1;min-width:220px">
+                <div class="sh-stat-label">Account</div>
+                <div class="sh-stat-val" id="ad-account-number">—</div>
+            </div>
+            <div class="sh-stat" style="flex:1;min-width:220px">
+                <div class="sh-stat-label">Type</div>
+                <div class="sh-stat-val" id="ad-account-type">—</div>
+            </div>
+            <div class="sh-stat" style="flex:1;min-width:220px">
+                <div class="sh-stat-label">Balance</div>
+                <div class="sh-stat-val" id="ad-account-balance">—</div>
+            </div>
+        </div>
+        <div class="panel" style="margin:0 0 14px 0">
+            <div class="panel-head">
+                <span class="panel-title">Recent Transactions</span>
+                <button class="btn btn-outline btn-sm" onclick="loadAccountTxns()">↺ Refresh</button>
+            </div>
+            <div id="ad-txn-list"><div class="empty">Loading…</div></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-outline" onclick="closeOv('ov-account-details')">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const API='';
+let TOKEN='',USER={},ACCOUNTS=[],CARDS=[];
+let ACCOUNT_DETAILS_NUMBER='';
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',()=>{
+    TOKEN=localStorage.getItem('nv_token')||localStorage.getItem('token')||'';
+    const stored=localStorage.getItem('nv_user')||localStorage.getItem('user');
+    if(!TOKEN){window.location.href='/login';return}
+    try{USER=JSON.parse(stored)||{}}catch{}
+    initUI();
+    loadAll();
+    setInterval(loadShield,30000);
+    setInterval(loadSecurityEvents,10000);
+});
+
+function initUI(){
+    const name=USER.username||'User';
+    document.getElementById('sb-name').textContent=name;
+    document.getElementById('sb-av').textContent=name.charAt(0).toUpperCase();
+    const h=new Date().getHours();
+    const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+    document.getElementById('greeting').textContent=g+', '+name;
+    document.getElementById('greet-name').textContent=g+', '+name+'!';
+    const now=new Date();
+    const ds=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('datestr').textContent=ds;
+    document.getElementById('greet-date').textContent='Here\'s your financial summary for '+ds+'.';
+}
+
+async function loadAll(){
+    // Load accounts first so transaction direction logic can be accurate.
+    await loadAccounts();
+    await Promise.all([loadTxns(),loadShield(),loadBankSummary(),loadSecurityEvents()]);
+}
+
+/* ── API HELPER ── */
+async function api(path,method='GET',body=null){
+    const opts={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}};
+    if(body)opts.body=JSON.stringify(body);
+    const r=await fetch(API+path,opts);
+    if(r.status===401){
+        localStorage.removeItem('nv_token');localStorage.removeItem('nv_user');
+        localStorage.removeItem('token');localStorage.removeItem('user');
+        window.location.href='/login';return null
+    }
+    return r.json();
+}
+
+/* ── ACCOUNTS ── */
+async function loadAccounts(){
+    const d=await api('/api/banking/accounts');
+    if(!d||!d.success)return;
+    ACCOUNTS=d.accounts;
+    renderAccounts(ACCOUNTS);
+    calcStats(ACCOUNTS);
+    populateTransferFrom(ACCOUNTS);
+}
+
+function calcStats(accounts){
+    const total=accounts.reduce((s,a)=>s+parseFloat(a.balance||0),0);
+    document.getElementById('st-total').textContent=fmt(total);
+}
+
+function renderAccounts(accounts){
+    const g=document.getElementById('acct-grid');
+    if(!accounts||!accounts.length){g.innerHTML='<div class="empty">No accounts yet. Open one to get started.</div>';return}
+    g.innerHTML=accounts.map(a=>`
+        <div class="acct-card ${a.account_type}" onclick="">
+            <div class="acct-type">${a.account_type.toUpperCase()} ACCOUNT</div>
+            <div class="acct-bal">${fmt(a.balance)}</div>
+            <div class="acct-bal-label">Available Balance</div>
+            <div class="acct-num">${maskAcct(a.account_number)}</div>
+            <div class="acct-actions">
+                <button class="acct-btn primary" onclick="event.stopPropagation();quickTransfer('${a.account_number}')">Transfer</button>
+                <button class="acct-btn secondary" onclick="event.stopPropagation();openAccountDetails('${a.account_number}')">Details</button>
+            </div>
+        </div>
+    `).join('')+`<div class="add-acct" onclick="openNewAcct()"><span style="font-size:22px">+</span> Open New Account</div>`;
+}
+
+/* ── TRANSACTIONS ── */
+async function loadTxns(){
+    const d=await api('/api/banking/transactions?limit=8');
+    if(!d||!d.success)return;
+    renderTxns(d.transactions);
+}
+
+function calcMonthly(txns){
+    const m=new Date().getMonth();
+    let net=0;
+    (txns||[]).forEach(t=>{
+        if(new Date(t.timestamp).getMonth()===m){
+            const isD=['transfer','payment','bill_payment'].includes(t.transaction_type);
+            net+=isD?-parseFloat(t.amount):parseFloat(t.amount);
+        }
+    });
+    document.getElementById('st-month').textContent=fmt(Math.abs(net));
+    document.getElementById('st-month').className='stat-val '+(net>=0?'green':'');
+}
+
+function renderTxns(txns){
+    const l=document.getElementById('txn-list');
+    if(!txns||!txns.length){l.innerHTML='<div class="empty">No transactions yet</div>';return}
+    const myAccounts=new Set((ACCOUNTS||[]).map(a=>a.account_number));
+    function direction(t){
+        // Backend doesn't provide a signed amount; infer direction based on from/to account.
+        if(t.transaction_type==='deposit') return 'in';
+        const from=t.from_account_number;
+        const to=t.to_account_number;
+        if(from && myAccounts.size && myAccounts.has(from) && (!to || !myAccounts.has(to))) return 'out';
+        if(to && myAccounts.size && myAccounts.has(to) && (!from || !myAccounts.has(from))) return 'in';
+        // Default: if it's from one of your accounts, treat it as an outflow.
+        if(from && myAccounts.size && myAccounts.has(from)) return 'out';
+        return 'in';
+    }
+    l.innerHTML=txns.map(t=>{
+        const d=direction(t);
+        const out=d==='out';
+        const isBill=t.transaction_type==='bill_payment';
+        const ic=isBill?'pay':(out?'out':'in');
+        return `<div class="txn-row">
+            <div class="txn-icon ${ic}"></div>
+            <div class="txn-info">
+                <div class="txn-name">${t.description||t.transaction_type}</div>
+                <div class="txn-meta">${relTime(t.timestamp)} · ${t.reference_number||'N/A'}</div>
+            </div>
+            <div class="txn-amt">
+                <div class="txn-amount ${out?'neg':'pos'}">${out?'-':'+'}${fmt(t.amount)}</div>
+                <div class="txn-date">${shortDate(t.timestamp)}</div>
+            </div>
+        </div>`
+    }).join('');
+}
+
+/* ── SHIELD STATUS ── */
+async function loadShield(){
+    const d=await api('/api/dashboard/stats');
+    if(!d||!d.success)return;
+    const s=d.stats;
+    const current=s.current_session||{};
+    const score=Number(current.anomaly_score||0);
+    const suspicious=current.is_suspicious===true;
+    const isActive=current.is_active!==false;
+
+    const activeSessions=s.active_sessions||0;
+    document.getElementById('sh-sessions').textContent=activeSessions||'—';
+    document.getElementById('st-sessions').textContent=activeSessions||'—';
+    document.getElementById('sh-actions').textContent=s.total_actions||0;
+    const risk=score>0.7?'High':score>0.4?'Medium':'Low';
+    const el=document.getElementById('sh-score');
+    el.textContent=risk;el.style.color=score>0.7?'var(--red)':score>0.4?'var(--amber)':'var(--green)';
+    const dur=Math.round(s.session_duration||0);
+    document.getElementById('sh-duration').textContent=dur>60?Math.round(dur/60)+'h':dur+'m';
+
+    document.getElementById('sh-ip').textContent=current.ip_address||'—';
+
+    const box=document.getElementById('shield-status-box');
+    const label=document.getElementById('shield-status-label');
+    const desc=document.getElementById('shield-status-desc');
+    const pill=document.querySelector('.shield-pill');
+    const st=document.getElementById('st-status');
+    const sub=document.getElementById('st-status-sub');
+    const radarNeedle=document.getElementById('shield-radar-needle');
+
+    // Reset styles.
+    box.className='status-big safe';
+    label.className='status-label';
+    if(pill){
+        pill.style.background='var(--greenbg)';
+        pill.style.borderColor='#BBF7D0';
+        pill.style.color='var(--green)';
+    }
+
+    if(!isActive){
+        box.className='status-big critical';
+        if(radarNeedle){
+            radarNeedle.style.transform='translate(-50%,-100%) rotate(-30deg)';
+        }
+        label.textContent='Session Terminated';
+        label.classList.add('critical');
+        desc.textContent='Your session is no longer active. Please sign in again.';
+
+        st.className='stat-val red';
+        st.textContent='Locked';
+        sub.textContent='Security session terminated';
+
+        if(pill){
+            pill.style.background='rgba(239,68,68,.14)';
+            pill.style.borderColor='rgba(239,68,68,.55)';
+            pill.style.color='var(--red)';
+        }
+        return;
+    }
+
+    if(score>0.7 || suspicious){
+        box.className='status-big critical';
+        if(radarNeedle){
+            const angle=Math.max(-90, Math.min(90, (score*180)-90));
+            radarNeedle.style.transform='translate(-50%,-100%) rotate('+angle+'deg)';
+        }
+        label.textContent='Security Breach Risk';
+        label.classList.add('critical');
+        desc.textContent=`Risk score ${(score*100).toFixed(1)}% • Additional protection is active.`;
+
+        st.className='stat-val red';
+        st.textContent='High Risk';
+        sub.textContent='Security review required';
+
+        if(pill){
+            pill.style.background='var(--amberbg)';
+            pill.style.borderColor='#FDE68A';
+            pill.style.color='var(--amber)';
+        }
+    } else if(score>0.4){
+        box.className='status-big warn';
+        label.textContent='Suspicious Activity';
+        label.classList.add('warn');
+        if(radarNeedle){
+            const angle=Math.max(-90, Math.min(90, (score*180)-90));
+            radarNeedle.style.transform='translate(-50%,-100%) rotate('+angle+'deg)';
+        }
+        desc.textContent=`Elevated signals detected • Risk score ${(score*100).toFixed(1)}%`;
+
+        st.className='stat-val amber';
+        st.textContent='Elevated';
+        sub.textContent='Extra verification may be required';
+
+        if(pill){
+            pill.style.background='var(--amberbg)';
+            pill.style.borderColor='#FDE68A';
+            pill.style.color='var(--amber)';
+        }
+    } else {
+        box.className='status-big safe';
+        label.textContent='Account Secure';
+        label.classList.remove('warn','critical','danger');
+        desc.textContent='No threats detected. TokenShield is monitoring your session in real time.';
+        if(radarNeedle){
+            const angle=Math.max(-90, Math.min(90, (score*180)-90));
+            radarNeedle.style.transform='translate(-50%,-100%) rotate('+angle+'deg)';
+        }
+
+        st.className='stat-val green';
+        st.textContent='Active';
+        sub.textContent='No issues detected';
+
+        if(pill){
+            pill.style.background='var(--greenbg)';
+            pill.style.borderColor='#BBF7D0';
+            pill.style.color='var(--green)';
+        }
+    }
+}
+
+async function loadBankSummary(){
+    const d=await api('/api/banking/dashboard/summary');
+    if(!d||!d.success||!d.summary)return;
+    document.getElementById('st-month').textContent=fmt(d.summary.monthly_spending||0);
+}
+
+async function loadSecurityEvents(){
+    const d=await api('/api/dashboard/recent-activity?limit=10');
+    if(!d||!d.success)return;
+    const list=document.getElementById('security-events-list');
+    const acts=d.activities||[];
+    document.getElementById('security-events-sub').textContent=`Last ${Math.min(10,acts.length)} markers`;
+    if(!acts.length){
+        list.innerHTML='<div style="padding:10px 0;color:var(--gray-500);font-size:12px">No recent security markers</div>';
+        return;
+    }
+    function sevFromAction(a){
+        const x=(a||'').toLowerCase();
+        if(x.includes('critical')||x.includes('breach')||x.includes('attack')) return 'critical';
+        if(x.includes('failed')||x.includes('unusual')||x.includes('rapid')||x.includes('enumeration')||x.includes('large_transfer')) return 'high';
+        if(x.includes('blocked')||x.includes('suspicious')||x.includes('anomaly')) return 'medium';
+        return 'low';
+    }
+    list.innerHTML=acts.map(a=>{
+        const sev=sevFromAction(a.action_type);
+        const icon=sev==='critical'?'⛔':sev==='high'?'🚨':sev==='medium'?'⚠️':'ℹ️';
+        const title=(a.action_type||'security_event').replace(/_/g,' ');
+        return `<div class="security-event">
+            <div class="security-sev ${sev}">${icon}</div>
+            <div class="security-event-info">
+                <div class="security-event-title">${title}</div>
+                <div class="security-event-meta">${relTime(a.timestamp)} · ${a.ip_address||'Unknown IP'}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function populateAccountSelect(selectId){
+    const s=document.getElementById(selectId);
+    s.innerHTML='<option value="">Select account…</option>'+ACCOUNTS.map(a=>`<option value="${a.account_number}">${a.account_type.toUpperCase()} — ${maskAcct(a.account_number)}</option>`).join('');
+}
+
+/* ── DEPOSIT ── */
+function openDeposit(){populateAccountSelect('dp-to');document.getElementById('ov-deposit').classList.add('show')}
+async function doDeposit(){
+    const to=document.getElementById('dp-to').value;
+    const amt=parseFloat(document.getElementById('dp-amt').value);
+    const desc=document.getElementById('dp-desc').value.trim()||'Cash Deposit';
+    const errEl=document.getElementById('dp-err'),errT=document.getElementById('dp-err-t');
+    const btn=document.getElementById('dp-btn');
+    errEl.classList.remove('show');
+    if(!to){errT.textContent='Select an account.';errEl.classList.add('show');return}
+    if(!amt||amt<=0){errT.textContent='Enter a valid amount.';errEl.classList.add('show');return}
+    btn.disabled=true;btn.textContent='Depositing…';
+    try{
+        const d=await api('/api/banking/deposit','POST',{to_account:to,amount:amt,description:desc});
+        if(d?.success){
+            toast('ok','Deposit Complete',`${fmt(amt)} added successfully`);
+            closeOv('ov-deposit');
+            setTimeout(loadAll,400);
+        }else{toast('err','Deposit Failed',d?.message||'Could not complete deposit')}
+    }catch{toast('err','Error','Connection failed')}
+    btn.disabled=false;btn.textContent='Confirm Deposit';
+}
+
+/* ── PAY BILL ── */
+function openPayBill(){populateAccountSelect('pb-from');document.getElementById('ov-paybill').classList.add('show')}
+async function doPayBill(){
+    const from=document.getElementById('pb-from').value;
+    const payee=document.getElementById('pb-name').value.trim();
+    const payeeAcct=document.getElementById('pb-acct').value.trim();
+    const amt=parseFloat(document.getElementById('pb-amt').value);
+    const desc=document.getElementById('pb-desc').value.trim();
+    const errEl=document.getElementById('pb-err'),errT=document.getElementById('pb-err-t');
+    const btn=document.getElementById('pb-btn');
+    errEl.classList.remove('show');
+    if(!from){errT.textContent='Select a source account.';errEl.classList.add('show');return}
+    if(!payee){errT.textContent='Enter a payee name.';errEl.classList.add('show');return}
+    if(!amt||amt<=0){errT.textContent='Enter a valid amount.';errEl.classList.add('show');return}
+    btn.disabled=true;btn.textContent='Processing…';
+    try{
+        const payload={from_account:from,payee_name:payee,payee_account:payeeAcct,amount:amt};
+        if(desc) payload.description=desc;
+        const d=await api('/api/banking/pay-bill','POST',payload);
+        if(d?.success){
+            toast('ok','Payment Complete',`${fmt(amt)} paid to ${payee}`);
+            closeOv('ov-paybill');
+            setTimeout(loadAll,400);
+        }else{toast('err','Payment Failed',d?.message||'Could not complete payment')}
+    }catch{toast('err','Error','Connection failed')}
+    btn.disabled=false;btn.textContent='Confirm Payment';
+}
+
+/* ── CARDS ── */
+function openCards(){document.getElementById('ov-cards').classList.add('show');if(!CARDS.length)loadCards()}
+async function loadCards(){
+    const d=await api('/api/banking/cards');
+    if(!d||!d.success)return;
+    CARDS=d.cards||[];
+    const tbody=document.getElementById('cards-tbody');
+    if(!CARDS.length){tbody.innerHTML='<tr><td colspan="5" style="padding:16px 14px;color:var(--gray-500)">No cards found</td></tr>';return}
+    tbody.innerHTML=CARDS.map(c=>{
+        const cn=maskCardNumber(c.card_number||'');
+        const status=(c.status||'active').toLowerCase();
+        const action=status==='blocked'
+            ? `<button class="btn btn-outline btn-sm" onclick="doUnblockCard(${c.id})">Unblock</button>`
+            : `<button class="btn btn-danger btn-sm" onclick="doBlockCard(${c.id})">Block</button>`;
+        return `<tr>
+            <td style="padding:12px 14px">${cn}</td>
+            <td style="padding:12px 14px;color:var(--gray-600)">${c.card_type||'—'}</td>
+            <td style="padding:12px 14px;color:var(--gray-600)">${c.card_network||'—'}</td>
+            <td style="padding:12px 14px">
+                <span class="badge ${status==='blocked'?'badge-danger':'badge-primary'}">${status==='blocked'?'Blocked':'Active'}</span>
+            </td>
+            <td style="padding:12px 14px">${action}</td>
+        </tr>`;
+    }).join('');
+}
+function maskCardNumber(n){
+    const s=(n||'').toString();
+    const d=s.replace(/[^0-9]/g,'');
+    if(d.length>=8) return d.slice(0,4)+' •••• '+d.slice(-4);
+    return s||'—';
+}
+async function doBlockCard(cardId){
+    const d=await api(`/api/banking/cards/${cardId}/block`,'POST');
+    if(d?.success){toast('ok','Card Blocked','Card status updated');setTimeout(loadCards,200)}else{toast('err','Block Failed',d?.message||'Could not block card')}
+}
+async function doUnblockCard(cardId){
+    const d=await api(`/api/banking/cards/${cardId}/unblock`,'POST');
+    if(d?.success){toast('ok','Card Unblocked','Card status updated');setTimeout(loadCards,200)}else{toast('err','Unblock Failed',d?.message||'Could not unblock card')}
+}
+
+/* ── ACCOUNT DETAILS ── */
+function openAccountDetails(accountNumber){
+    ACCOUNT_DETAILS_NUMBER=accountNumber;
+    document.getElementById('ov-account-details').classList.add('show');
+    loadAccountDetails();
+}
+async function loadAccountDetails(){
+    const d=await api(`/api/banking/accounts/${encodeURIComponent(ACCOUNT_DETAILS_NUMBER)}`);
+    const boxErr=document.getElementById('ad-txn-list');
+    if(!d||!d.success){boxErr.innerHTML='<div class="empty">Account details unavailable</div>';return}
+    const acc=d.account;
+    document.getElementById('ad-account-number').textContent=maskAcct(acc.account_number||ACCOUNT_DETAILS_NUMBER);
+    document.getElementById('ad-account-type').textContent=(acc.account_type||'—').toUpperCase();
+    document.getElementById('ad-account-balance').textContent=fmt(acc.balance||0);
+    await loadAccountTxns();
+}
+async function loadAccountTxns(){
+    const list=document.getElementById('ad-txn-list');
+    list.innerHTML='<div class="empty">Loading…</div>';
+    const d=await api(`/api/banking/transactions?limit=6&account_number=${encodeURIComponent(ACCOUNT_DETAILS_NUMBER)}`);
+    if(!d||!d.success){list.innerHTML='<div class="empty">No transactions</div>';return}
+    const txns=d.transactions||[];
+    if(!txns.length){list.innerHTML='<div class="empty">No transactions for this account</div>';return}
+    const isMy=(acct)=>String(acct||'')===String(ACCOUNT_DETAILS_NUMBER);
+    list.innerHTML=txns.map(t=>{
+        let dir='in';
+        if(t.transaction_type==='deposit'){dir='in'}
+        else if(isMy(t.from_account_number)) dir='out';
+        else if(isMy(t.to_account_number)) dir='in';
+        const out=dir==='out';
+        const isBill=t.transaction_type==='bill_payment';
+        const ic=isBill?'pay':(out?'out':'in');
+        return `<div class="txn-row">
+            <div class="txn-icon ${ic}"></div>
+            <div class="txn-info">
+                <div class="txn-name">${t.description||t.transaction_type}</div>
+                <div class="txn-meta">${relTime(t.timestamp)} · ${t.reference_number||'N/A'}</div>
+            </div>
+            <div class="txn-amt">
+                <div class="txn-amount ${out?'neg':'pos'}">${out?'-':'+'}${fmt(t.amount)}</div>
+                <div class="txn-date">${shortDate(t.timestamp)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ── TRANSFER ── */
+function openTransfer(){document.getElementById('ov-transfer').classList.add('show')}
+function quickTransfer(acctNum){openTransfer();setTimeout(()=>{document.getElementById('tf-from').value=acctNum},100)}
+
+function populateTransferFrom(accounts){
+    const s=document.getElementById('tf-from');
+    s.innerHTML='<option value="">Select account…</option>'+accounts.map(a=>`<option value="${a.account_number}">${a.account_type.toUpperCase()} — ${maskAcct(a.account_number)} (${fmt(a.balance)})</option>`).join('');
+}
+
+async function doTransfer(){
+    const from=document.getElementById('tf-from').value;
+    const to=document.getElementById('tf-to').value.trim();
+    const amt=parseFloat(document.getElementById('tf-amt').value);
+    const desc=document.getElementById('tf-desc').value.trim()||'Transfer';
+    const errEl=document.getElementById('tf-err'),errT=document.getElementById('tf-err-t');
+    const btn=document.getElementById('tf-btn');
+    errEl.classList.remove('show');
+    if(!from){errT.textContent='Please select a source account.';errEl.classList.add('show');return}
+    if(!to){errT.textContent='Please enter a destination account number.';errEl.classList.add('show');return}
+    if(!amt||amt<=0){errT.textContent='Please enter a valid amount.';errEl.classList.add('show');return}
+    btn.disabled=true;btn.textContent='Processing…';
+    try{
+        const d=await api('/api/banking/transfer','POST',{from_account:from,to_account:to,amount:amt,description:desc});
+        if(d?.success){
+            toast('ok','Transfer Complete',`${fmt(amt)} sent successfully`);
+            closeOv('ov-transfer');
+            document.getElementById('tf-to').value='';document.getElementById('tf-amt').value='';document.getElementById('tf-desc').value='';
+            setTimeout(loadAll,500);
+        }else if(d?.security_alert){
+            toast('err','🚨 Blocked by TokenShield','This transfer was blocked for your security');
+            closeOv('ov-transfer');
+        }else{
+            errT.textContent=d?.message||'Transfer failed. Please try again.';errEl.classList.add('show');
+        }
+    }catch{errT.textContent='Connection error.';errEl.classList.add('show')}
+    btn.disabled=false;btn.textContent='Confirm Transfer';
+}
+
+/* ── NEW ACCOUNT ── */
+function openNewAcct(){document.getElementById('ov-newacct').classList.add('show')}
+async function doNewAcct(){
+    const type=document.getElementById('na-type').value;
+    const dep=parseFloat(document.getElementById('na-dep').value||0);
+    const btn=document.getElementById('na-btn');
+    btn.disabled=true;btn.textContent='Opening…';
+    try{
+        const d=await api('/api/banking/accounts/create','POST',{account_type:type,initial_deposit:dep});
+        if(d?.success){
+            toast('ok','Account Opened',`New ${type} account created successfully`);
+            closeOv('ov-newacct');document.getElementById('na-dep').value='0';
+            setTimeout(loadAccounts,500);
+        }else{toast('err','Failed',d?.message||'Could not create account')}
+    }catch{toast('err','Error','Connection failed')}
+    btn.disabled=false;btn.textContent='Open Account';
+}
+
+/* ── UTILS ── */
+function closeOv(id){document.getElementById(id).classList.remove('show')}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show')}));
+function scrollToShield(){document.getElementById('shield-section').scrollIntoView({behavior:'smooth',block:'center'})}
+
+function fmt(v){
+    return new Intl.NumberFormat('en-IN',{
+        style:'currency',
+        currency:'INR',
+        maximumFractionDigits:2
+    }).format(v||0);
+}
+function maskAcct(n){const c=n.replace(/[^0-9]/gi,'');return c.length>8?c.slice(0,4)+' •••• '+c.slice(-4):n}
+function relTime(ts){const d=Date.now()-new Date(ts).getTime();const m=Math.floor(d/60000);if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'}
+function shortDate(ts){return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+
+function toast(type,title,msg){
+    const icons={ok:'✅',err:'❌',info:'ℹ️',warn:'⚠️'};
+    const el=document.createElement('div');el.className='toast '+(type==='ok'?'ok':type==='err'?'err':'');
+    el.innerHTML=`<div class="t-ico">${icons[type]||'•'}</div><div class="t-body"><div class="t-title">${title}</div><div class="t-msg">${msg}</div></div>`;
+    document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),4000);
+}
+
+function scrollToTransactions(){
+    const el=document.getElementById('txn-section')||document.querySelector('.txn-list');
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function showProfile(){
+    toast('info','Profile','Profile management coming soon.');
+}
+async function doLogout(){
+    if(!confirm('Sign out of NeoVault?'))return;
+    try{await api('/api/auth/logout','POST')}catch{}
+    localStorage.removeItem('nv_token');localStorage.removeItem('nv_user');
+    localStorage.removeItem('token');localStorage.removeItem('user');
+    window.location.href='/login';
+}
+</script>
+<script src="/js/app.js"></script>
+    <script src="/js/device-fingerprint.js"></script>
+</body>
+</html> 

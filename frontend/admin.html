@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - TokenShield</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .admin-container {
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .navbar-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .navbar-logo svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--bg-primary);
+        }
+        
+        .navbar-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--color-primary);
+        }
+        
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            color: var(--color-primary);
+        }
+        
+        .refresh-indicator.active {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            margin: 0;
+        }
+        
+        /* Stats Grid */
+        .admin-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-normal);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+        
+        .stat-card.primary::before { background: var(--color-primary); }
+        .stat-card.success::before { background: var(--color-success); }
+        .stat-card.warning::before { background: var(--color-warning); }
+        .stat-card.danger::before { background: var(--color-danger); }
+        .stat-card.critical::before { background: var(--color-critical); animation: pulse 2s infinite; }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+        }
+        
+        .chart-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab {
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            transition: color var(--transition-fast);
+        }
+        
+        .tab.active {
+            color: var(--color-primary);
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table thead {
+            background: var(--bg-tertiary);
+        }
+        
+        .data-table th {
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        
+        .data-table tbody tr {
+            transition: background var(--transition-fast);
+        }
+        
+        .data-table tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+        
+        .data-table tbody tr.suspicious {
+            background: rgba(245, 158, 11, 0.05);
+            border-left: 3px solid var(--color-warning);
+        }
+        
+        .data-table tbody tr.critical {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 3px solid var(--color-danger);
+        }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filter-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        /* Status Indicators */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-dot.active { background: var(--color-success); animation: pulse 2s infinite; }
+        .status-dot.inactive { background: var(--text-disabled); }
+        .status-dot.suspicious { background: var(--color-warning); animation: pulse 2s infinite; }
+        .status-dot.critical { background: var(--color-danger); animation: pulse 1s infinite; }
+        
+        /* Incident Timeline */
+        .incident-timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .incident-item {
+            position: relative;
+            padding: 1rem 0;
+            border-left: 2px solid var(--border-color);
+            padding-left: 2rem;
+            margin-left: 0.5rem;
+        }
+        
+        .incident-item::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 1.5rem;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--color-primary);
+        }
+        
+        .incident-item.critical::before {
+            border-color: var(--color-danger);
+            background: var(--color-danger);
+            box-shadow: 0 0 10px var(--color-danger);
+        }
+        
+        .incident-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        
+        .incident-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .incident-details {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <div class="navbar-logo">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="navbar-title">TokenShield Admin</h1>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Real-time Security Monitoring</p>
+                </div>
+            </div>
+            
+            <div class="navbar-actions">
+                <div class="refresh-indicator" id="refresh-indicator">
+                    <span>●</span>
+                    <span id="refresh-text">Auto-refresh: 5s</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/dashboard'">
+                    User View
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="handleLogout()">
+                    Logout
+                </button>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Security Overview</h1>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="refreshAllData()">
+                        🔄 Refresh All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="admin-stats-grid">
+                <div class="stat-card primary">
+                    <div class="stat-value" id="total-users">-</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-value" id="active-sessions">-</div>
+                    <div class="stat-label">Active Sessions</div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-value" id="suspicious-sessions">-</div>
+                    <div class="stat-label">Suspicious</div>
+                </div>
+                
+                <div class="stat-card danger">
+                    <div class="stat-value" id="recent-incidents">-</div>
+                    <div class="stat-label">Incidents (24h)</div>
+                </div>
+                
+                <div class="stat-card" id="avg-score-card">
+                    <div class="stat-value" id="avg-anomaly-score">-</div>
+                    <div class="stat-label">Avg Threat Score</div>
+                </div>
+            </div>
+            
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Incidents by Severity</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="severity-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Activity Trend (7 Days)</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('sessions')">Active Sessions</button>
+                    <button class="tab" onclick="switchTab('incidents')">Incidents</button>
+                    <button class="tab" onclick="switchTab('users')">Users</button>
+                </div>
+                
+                <!-- Sessions Tab -->
+                <div id="sessions-tab" class="tab-content active">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <input type="checkbox" id="filter-suspicious" onchange="loadSessions()" checked>
+                            <label class="filter-label" for="filter-suspicious">Show Suspicious Only</label>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="loadSessions()">
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>IP Address</th>
+                                    <th>Device</th>
+                                    <th>Created</th>
+                                    <th>Last Active</th>
+                                    <th>Threat Score</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessions-tbody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Incidents Tab -->
+                <div id="incidents-tab" class="tab-content">
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label class="filter-label">Severity:</label>
+                            <select class="form-select" id="severity-filter" onchange="loadIncidents()">
+                                <option value="">All</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="loadIncidents()">
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <div id="incidents-list" class="incident-timeline">
+                        <!-- Incidents will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Users Tab -->
+                <div id="users-tab" class="tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created</th>
+                                    <th>Last Login</th>
+                                    <th>Active Sessions</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-tbody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/app.js"></script>
+    <script>
+        // Global variables
+        let refreshInterval;
+        let refreshCountdown;
+        let severityChart;
+        let activityChart;
+        const REFRESH_INTERVAL = 1000; // 1 second for real-time attack monitoring
+        
+        // Initialize admin panel
+        async function initAdmin() {
+            // Check authentication and admin role
+            if (!TokenShield.requireAuth() || !TokenShield.requireAdmin()) return;
+            
+            // Load all data
+            await refreshAllData();
+            
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Initialize charts
+            initCharts();
+        }
+        
+        async function refreshAllData() {
+            await Promise.all([
+                loadAdminStats(),
+                loadSessions(),
+                loadIncidents(),
+                loadUsers()
+            ]);
+        }
+        
+        async function loadAdminStats() {
+            const result = await TokenShield.api.getAdminStats();
+            
+            if (result.success && result.data.success) {
+                const stats = result.data.stats;
+                
+                // Update stat cards
+                document.getElementById('total-users').textContent = stats.users.total;
+                document.getElementById('active-sessions').textContent = stats.sessions.active;
+                document.getElementById('suspicious-sessions').textContent = stats.sessions.suspicious;
+                document.getElementById('recent-incidents').textContent = stats.incidents.recent_24h;
+                
+                const avgScore = stats.anomaly.average_score;
+                document.getElementById('avg-anomaly-score').textContent = (avgScore * 100).toFixed(1) + '%';
+                
+                // Update card color based on average score
+                const scoreCard = document.getElementById('avg-score-card');
+                scoreCard.classList.remove('success', 'warning', 'danger', 'critical');
+                if (avgScore < 0.3) scoreCard.classList.add('success');
+                else if (avgScore < 0.5) scoreCard.classList.add('warning');
+                else if (avgScore < 0.7) scoreCard.classList.add('danger');
+                else scoreCard.classList.add('critical');
+                
+                // Update charts
+                updateCharts(stats);
+            }
+        }
+        
+        async function loadSessions() {
+            const suspiciousOnly = document.getElementById('filter-suspicious').checked;
+            const result = await TokenShield.api.getAdminSessions(true, suspiciousOnly);
+            
+            if (result.success && result.data.success) {
+                const sessions = result.data.sessions;
+                const tbody = document.getElementById('sessions-tbody');
+                
+                if (sessions.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem;">
+                                No sessions found
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = sessions.map(session => {
+                    const rowClass = session.anomaly_score >= 0.7 ? 'critical' : 
+                                    session.anomaly_score >= 0.5 ? 'suspicious' : '';
+                    
+                    return `
+                        <tr class="${rowClass}">
+                            <td><strong>${session.username}</strong></td>
+                            <td><code>${session.ip_address}</code></td>
+                            <td>${parseUserAgent(session.user_agent)}</td>
+                            <td>${TokenShield.Utils.formatRelativeTime(session.created_at)}</td>
+                            <td>${TokenShield.Utils.formatRelativeTime(session.last_activity)}</td>
+                            <td>
+                                <span class="badge ${TokenShield.Utils.getSeverityBadge(session.anomaly_score)}">
+                                    ${(session.anomaly_score * 100).toFixed(1)}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-dot ${session.is_suspicious ? 'suspicious' : 'active'}"></span>
+                                ${session.is_suspicious ? 'Suspicious' : 'Normal'}
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="adminRevokeSession(${session.id}, '${session.username}')">
+                                    Revoke
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+        
+        async function loadIncidents() {
+            const severity = document.getElementById('severity-filter')?.value || null;
+            const result = await TokenShield.api.getIncidents(severity, 7);
+            
+            if (result.success && result.data.success) {
+                const incidents = result.data.incidents;
+                const listEl = document.getElementById('incidents-list');
+                
+                if (incidents.length === 0) {
+                    listEl.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            No incidents in the last 7 days
+                        </div>
+                    `;
+                    return;
+                }
+                
+                listEl.innerHTML = incidents.map(incident => {
+                    const itemClass = incident.severity === 'critical' ? 'critical' : '';
+                    
+                    return `
+                        <div class="incident-item ${itemClass}">
+                            <div class="incident-time">${TokenShield.Utils.formatDateTime(incident.timestamp)}</div>
+                            <div class="incident-title">
+                                <span class="badge badge-${incident.severity}">${incident.severity.toUpperCase()}</span>
+                                ${incident.incident_type.replace(/_/g, ' ').toUpperCase()}
+                            </div>
+                            <div class="incident-details">
+                                User: <strong>${incident.username || 'Unknown'}</strong> • 
+                                Score: ${(incident.anomaly_score * 100).toFixed(1)}% • 
+                                Action: ${incident.action_taken || 'None'}
+                            </div>
+                            ${incident.details ? `<div class="incident-details" style="margin-top: 0.5rem;">${incident.details}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        
+        async function loadUsers() {
+            const result = await TokenShield.api.getUsers();
+            
+            if (result.success && result.data.success) {
+                const users = result.data.users;
+                const tbody = document.getElementById('users-tbody');
+                
+                tbody.innerHTML = users.map(user => `
+                    <tr>
+                        <td><strong>${user.username}</strong></td>
+                        <td>${user.email}</td>
+                        <td>
+                            <span class="badge ${user.is_admin ? 'badge-danger' : 'badge-primary'}">
+                                ${user.is_admin ? 'Admin' : 'User'}
+                            </span>
+                        </td>
+                        <td>${TokenShield.Utils.formatDateTime(user.created_at)}</td>
+                        <td>${user.last_login ? TokenShield.Utils.formatRelativeTime(user.last_login) : 'Never'}</td>
+                        <td>${user.active_sessions}</td>
+                        <td>
+                            <span class="status-dot ${user.is_active ? 'active' : 'inactive'}"></span>
+                            ${user.is_active ? 'Active' : 'Inactive'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function adminRevokeSession(sessionId, username) {
+            if (!TokenShield.Utils.confirm(`Revoke session for ${username}?`)) {
+                return;
+            }
+            
+            const result = await TokenShield.api.adminRevokeSession(sessionId, 'Revoked by admin');
+            
+            if (result.success && result.data.success) {
+                TokenShield.Utils.showToast('Session revoked successfully', 'success');
+                loadSessions();
+                loadAdminStats();
+            } else {
+                TokenShield.Utils.showToast('Failed to revoke session', 'danger');
+            }
+        }
+        
+        function initCharts() {
+            // Severity Chart (Doughnut)
+            const severityCtx = document.getElementById('severity-chart').getContext('2d');
+            severityChart = new Chart(severityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Critical'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(220, 38, 38, 0.8)'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#1e293b'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#d1d5db' }
+                        }
+                    }
+                }
+            });
+            
+            // Activity Chart (Line)
+            const activityCtx = document.getElementById('activity-chart').getContext('2d');
+            activityChart = new Chart(activityCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Actions',
+                        data: [],
+                        borderColor: 'rgba(0, 212, 255, 1)',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: '#374151' }
+                        },
+                        x: {
+                            ticks: { color: '#9ca3af' },
+                            grid: { color: '#374151' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateCharts(stats) {
+            // Update severity chart
+            if (severityChart && stats.incidents.by_severity) {
+                const severity = stats.incidents.by_severity;
+                severityChart.data.datasets[0].data = [
+                    severity.low || 0,
+                    severity.medium || 0,
+                    severity.high || 0,
+                    severity.critical || 0
+                ];
+                severityChart.update();
+            }
+            
+            // Update activity chart
+            if (activityChart && stats.activity_trend) {
+                activityChart.data.labels = stats.activity_trend.map(d => d.date);
+                activityChart.data.datasets[0].data = stats.activity_trend.map(d => d.count);
+                activityChart.update();
+            }
+        }
+        
+        function startAutoRefresh() {
+            let countdown = REFRESH_INTERVAL / 1000;
+            
+            refreshInterval = setInterval(async () => {
+                await loadAdminStats();
+                await loadSessions();
+                countdown = REFRESH_INTERVAL / 1000;
+            }, REFRESH_INTERVAL);
+            
+            refreshCountdown = setInterval(() => {
+                countdown--;
+                document.getElementById('refresh-text').textContent = `Auto-refresh: ${countdown}s`;
+                
+                if (countdown <= 0) {
+                    countdown = REFRESH_INTERVAL / 1000;
+                }
+            }, 1000);
+        }
+        
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        function parseUserAgent(ua) {
+            if (!ua) return 'Unknown';
+            if (ua.includes('Chrome')) return '🌐 Chrome';
+            if (ua.includes('Firefox')) return '🦊 Firefox';
+            if (ua.includes('Safari')) return '🧭 Safari';
+            if (ua.includes('Mobile')) return '📱 Mobile';
+            return '💻 Desktop';
+        }
+        
+        async function handleLogout() {
+            if (!TokenShield.Utils.confirm('Logout from admin panel?')) return;
+            await TokenShield.api.logout();
+            window.location.href = '/';
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initAdmin);
+        
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+            if (refreshCountdown) clearInterval(refreshCountdown);
+        });
+  </script>
+    <script src="/js/device-fingerprint.js"></script>
+</body>
+</html>

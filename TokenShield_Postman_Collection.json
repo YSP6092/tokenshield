@@ -1,0 +1,258 @@
+{
+  "info": {
+    "name": "TokenShield API",
+    "description": "Complete API test collection for TokenShield / NeoVault banking security platform.\n\n## Setup\n1. Set `baseUrl` variable to `http://localhost:5000`\n2. Run **Register** then **Login** — token is auto-saved\n3. All authenticated routes use `{{token}}` automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "tokenshield-v1"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "username", "value": "testuser", "type": "string" },
+    { "key": "password", "value": "testpass123", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{username}}@example.com\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('success=true', () => pm.expect(pm.response.json().success).to.be.true);"
+            ]}
+          }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); pm.test('Token saved', () => true); }",
+              "pm.test('Login success', () => pm.expect(json.success).to.be.true);"
+            ]}
+          }]
+        },
+        {
+          "name": "Login (wrong password)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"wrongpassword\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));",
+            "pm.test('success=false', () => pm.expect(pm.response.json().success).to.be.false);"
+          ]}}]
+        },
+        {
+          "name": "Login 2FA",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login-2fa",
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"two_factor_code\": \"123456\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 or 401', () => pm.expect([200, 401]).to.include(pm.response.code));"
+          ]}}]
+        },
+        {
+          "name": "Verify Session",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/verify"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has session', () => pm.expect(pm.response.json()).to.have.property('session'));"
+          ]}}]
+        },
+        {
+          "name": "Get Sessions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/sessions"
+          }
+        },
+        {
+          "name": "Revoke Suspicious Sessions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/sessions/revoke-suspicious"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has revoked_count', () => pm.expect(pm.response.json()).to.have.property('revoked_count'));"
+          ]}}]
+        },
+        {
+          "name": "TOTP Setup",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/totp/setup"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.secret) pm.collectionVariables.set('totp_secret', json.secret);",
+            "pm.test('Has QR code', () => pm.expect(json).to.have.property('qr_code'));"
+          ]}}]
+        },
+        {
+          "name": "TOTP Confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/auth/totp/confirm",
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"000000\"\n}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/auth/logout"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Logout success', () => pm.expect(pm.response.json().success).to.be.true);",
+            "pm.collectionVariables.set('token', '');"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Banking",
+      "item": [
+        {
+          "name": "Get Accounts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/banking/accounts"
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/banking/transactions"
+          }
+        },
+        {
+          "name": "Transfer Funds",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/banking/transfer",
+            "body": { "mode": "raw", "raw": "{\n  \"to_account_number\": \"ACC-00000002\",\n  \"amount\": 100.00,\n  \"description\": \"Test transfer\"\n}" }
+          }
+        },
+        {
+          "name": "Pay Bill",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/api/banking/pay-bill",
+            "body": { "mode": "raw", "raw": "{\n  \"payee_name\": \"Electric Company\",\n  \"payee_account\": \"ELEC-12345\",\n  \"amount\": 75.00,\n  \"description\": \"Monthly electricity\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security",
+      "item": [
+        {
+          "name": "Get Security Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/security/dashboard"
+          }
+        },
+        {
+          "name": "Get Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/security/sessions"
+          }
+        },
+        {
+          "name": "Get Incident Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/security/incidents"
+          }
+        },
+        {
+          "name": "Analyze Behavior",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/security/analyze"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "User Dashboard Data",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/dashboard/user"
+          }
+        },
+        {
+          "name": "Admin Dashboard Data",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/dashboard/admin"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -16,10 +16,10 @@ app = create_app()
 
 if __name__ == '__main__':
     # Get configuration from environment (with 5001 as default)
-    host = os.getenv('FLASK_HOST', '0.0.0.0')
-    port = int(os.getenv('FLASK_PORT', 5001))  # ✅ Changed default to 5001
-    debug = os.getenv('DEBUG', 'True').lower() == 'true'  # ✅ Changed to True for development
-    
+    host  = os.getenv('FLASK_HOST', '0.0.0.0')
+    port  = int(os.getenv('FLASK_PORT', 5001))
+    debug = os.getenv('DEBUG', 'True').lower() == 'true'
+
     print("=" * 60)
     print("🛡️  TokenShield - AI-Powered Session Security")
     print("=" * 60)
@@ -27,9 +27,12 @@ if __name__ == '__main__':
     print(f"🔧 Debug mode: {debug}")
     print(f"📊 Environment: {os.getenv('FLASK_ENV', 'development')}")
     print("=" * 60)
-    print(f"\n✅ Open in browser: http://localhost:{port}\n")  # ✅ Added helpful message
-    print("=" * 60)
-    
+    print(f"\n✅ Open in browser: http://localhost:{port}")
+    print(f"📊 Simulation dashboard: http://localhost:{port}/simulation")
+    print(f"🔒 Admin command center: http://localhost:{port}/admin")
+    print(f"🔍 Security engine:      http://localhost:{port}/security-engine")
+    print("\n" + "=" * 60)
+
     # Run the application
     app.run(
         host=host,

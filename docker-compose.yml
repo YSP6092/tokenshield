@@ -1,0 +1,271 @@
+# ─────────────────────────────────────────────────────────────
+# TokenShield — Docker Compose  (Phase 3.5 — FIXED)
+#
+# FIXES APPLIED:
+#   1. subnet /16 → /24 (matches architecture spec)
+#   2. flask bind-mount changed: only instance/ and nginx/ mounted
+#      (was mounting .:  /app which WIPED pip-installed packages)
+#   3. CORS_ORIGINS env added with all needed origins incl. port 80
+#   4. attacker now hits nginx (172.20.0.3:80) not flask directly
+# ─────────────────────────────────────────────────────────────
+
+networks:
+  tokenshield-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24        # FIX 1: was /16, spec says /24
+          gateway: 172.20.0.1
+
+volumes:
+  db-data:
+  redis-data:
+
+services:
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis-cache:
+    image: redis:7-alpine
+    container_name: redis-cache
+    hostname: redis-cache
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.4
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --loglevel notice
+    healthcheck:
+      test:     ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  3s
+      retries:  5
+    restart: unless-stopped
+
+  # ── Flask / TokenShield ─────────────────────────────────────
+  flask-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask-server
+    hostname: flask-server
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.2
+    ports:
+      - "5001:5001"          # direct debug access (bypass nginx)
+    volumes:
+      # FIX 2: DO NOT bind-mount the whole project root into /app.
+      # Doing so overwrites the pip packages installed during docker build.
+      # Only mount the mutable runtime directories:
+      - db-data:/app/instance          # SQLite DB persists across restarts
+      - ./nginx:/app/nginx             # nginx conf writable by mitigation code
+    environment:
+      FLASK_ENV:              development
+      FLASK_DEBUG:            "1"
+      DATABASE_URL:           sqlite:////app/instance/tokenshield.db
+      SECRET_KEY:             tokenshield-dev-secret-2025
+      JWT_SECRET_KEY:         tokenshield-jwt-dev-2025
+      GNS3_HOST:              host.docker.internal
+      GNS3_PORT:              "3080"
+      GNS3_PROJECT:           TokenShield
+      NGINX_BLOCKED_IPS_PATH: /app/nginx/blocked_ips.conf
+      REDIS_URL:              redis://redis-cache:6379/0
+      # FIX 3: include ALL origins the browser may use
+      CORS_ORIGINS: >-
+        http://localhost,http://localhost:80,http://localhost:5001,
+        http://127.0.0.1,http://127.0.0.1:80,http://127.0.0.1:5001,
+        http://172.20.0.3,http://172.20.0.2:5001
+    healthcheck:
+      test:     ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 30s
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Nginx WAF ───────────────────────────────────────────────
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    hostname: nginx-proxy
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.3
+    ports:
+      - "80:80"              # main browser entry point
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/blocked_ips.conf:/etc/nginx/blocked_ips.conf
+      - ./nginx/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["sh", "/entrypoint.sh"]
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Normal traffic users ─────────────────────────────────────
+  user1:
+    image: python:3.11-slim
+    container_name: user1
+    hostname: user1
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.10
+    volumes:
+      - ./simulation:/sim
+    working_dir: /sim
+    environment:
+      SERVER_HOST:   172.20.0.3
+      SERVER_PORT:   "80"
+      SIM_USERNAME:  alice
+      SIM_PASSWORD:  alice123
+      SIM_EMAIL:     alice@sim.local
+      SIM_CYCLES:    "0"
+      SIM_MIN_DELAY: "3"
+      SIM_MAX_DELAY: "10"
+    command: >
+      sh -c "pip install requests --quiet &&
+             python traffic_simulator.py"
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user2:
+    image: python:3.11-slim
+    container_name: user2
+    hostname: user2
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.11
+    volumes:
+      - ./simulation:/sim
+    working_dir: /sim
+    environment:
+      SERVER_HOST:   172.20.0.3
+      SERVER_PORT:   "80"
+      SIM_USERNAME:  bob
+      SIM_PASSWORD:  bob12345
+      SIM_EMAIL:     bob@sim.local
+      SIM_CYCLES:    "0"
+      SIM_MIN_DELAY: "4"
+      SIM_MAX_DELAY: "12"
+    command: >
+      sh -c "pip install requests --quiet &&
+             python traffic_simulator.py"
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user3:
+    image: python:3.11-slim
+    container_name: user3
+    hostname: user3
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.12
+    volumes:
+      - ./simulation:/sim
+    working_dir: /sim
+    environment:
+      SERVER_HOST:   172.20.0.3
+      SERVER_PORT:   "80"
+      SIM_USERNAME:  carol
+      SIM_PASSWORD:  carol999
+      SIM_EMAIL:     carol@sim.local
+      SIM_CYCLES:    "0"
+      SIM_MIN_DELAY: "2"
+      SIM_MAX_DELAY: "8"
+    command: >
+      sh -c "pip install requests --quiet &&
+             python traffic_simulator.py"
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── JMeter load generator ────────────────────────────────────
+  jmeter-load:
+    build:
+      context: .
+      dockerfile: Dockerfile.jmeter
+    container_name: jmeter-load
+    hostname: jmeter-load
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.20
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./jmeter:/jmeter
+    environment:
+      JMETER_HOST:  172.20.0.3
+      JMETER_PORT:  "80"
+      JMETER_USERS: "20"
+      JMETER_RAMP:  "30"
+    entrypoint: ["sh", "/jmeter/entrypoint.sh"]
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── OWASP ZAP ───────────────────────────────────────────────
+  zap-attacker:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: zap-attacker
+    hostname: zap-attacker
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.98
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./zap:/zap/wrk
+      - ./zap/reports:/zap/reports
+    environment:
+      ZAP_TARGET_HOST:     172.20.0.3
+      ZAP_TARGET_PORT:     "80"
+      ZAP_REPORT_PORT:     "8090"
+      ZAP_RESCAN_INTERVAL: "3600"
+    entrypoint: ["sh", "/zap/wrk/entrypoint.sh"]
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── Python attacker script ───────────────────────────────────
+  attacker:
+    image: python:3.11-slim
+    container_name: attacker
+    hostname: attacker
+    networks:
+      tokenshield-net:
+        ipv4_address: 172.20.0.99
+    volumes:
+      - ./simulation:/sim
+    working_dir: /sim
+    environment:
+      # FIX 4: attacker now goes through nginx WAF (172.20.0.3:80)
+      # so TokenShield middleware sees the attack through the real path
+      SERVER_HOST:       172.20.0.3
+      SERVER_PORT:       "80"
+      ATTACKER_VICTIM:   alice
+      ATTACKER_LOCATION: moscow
+      ATTACKER_DELAY:    "4"
+      ATTACKER_LOOP:     "1"
+    command: >
+      sh -c "pip install requests --quiet &&
+             python attacker.py"
+    depends_on:
+      flask-server:
+        condition: service_healthy
+    restart: unless-stopped

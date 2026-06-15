@@ -1,878 +1,1055 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - TokenShield</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        .admin-container {
-            min-height: 100vh;
-            background: var(--bg-primary);
-        }
-        
-        /* Navbar */
-        .navbar {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: var(--shadow-md);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .navbar-logo {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .navbar-logo svg {
-            width: 24px;
-            height: 24px;
-            fill: var(--bg-primary);
-        }
-        
-        .navbar-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0;
-            color: var(--color-primary);
-        }
-        
-        .navbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .refresh-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(0, 212, 255, 0.1);
-            border-radius: var(--radius-md);
-            font-size: 0.875rem;
-            color: var(--color-primary);
-        }
-        
-        .refresh-indicator.active {
-            animation: pulse 2s infinite;
-        }
-        
-        /* Main Content */
-        .main-content {
-            padding: 2rem;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-        
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        
-        .page-title {
-            font-size: 2rem;
-            margin: 0;
-        }
-        
-        /* Stats Grid */
-        .admin-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            position: relative;
-            overflow: hidden;
-            transition: all var(--transition-normal);
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-        }
-        
-        .stat-card.primary::before { background: var(--color-primary); }
-        .stat-card.success::before { background: var(--color-success); }
-        .stat-card.warning::before { background: var(--color-warning); }
-        .stat-card.danger::before { background: var(--color-danger); }
-        .stat-card.critical::before { background: var(--color-critical); animation: pulse 2s infinite; }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Charts Grid */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        @media (max-width: 1200px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .chart-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-        }
-        
-        .chart-header {
-            margin-bottom: 1.5rem;
-        }
-        
-        .chart-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-        
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 1rem;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 1.5rem;
-        }
-        
-        .tab {
-            padding: 1rem 1.5rem;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-weight: 500;
-            cursor: pointer;
-            position: relative;
-            transition: color var(--transition-fast);
-        }
-        
-        .tab.active {
-            color: var(--color-primary);
-        }
-        
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--color-primary);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-        
-        /* Tables */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .data-table thead {
-            background: var(--bg-tertiary);
-        }
-        
-        .data-table th {
-            padding: 1rem;
-            text-align: left;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .data-table td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-        
-        .data-table tbody tr {
-            transition: background var(--transition-fast);
-        }
-        
-        .data-table tbody tr:hover {
-            background: var(--bg-card-hover);
-        }
-        
-        .data-table tbody tr.suspicious {
-            background: rgba(245, 158, 11, 0.05);
-            border-left: 3px solid var(--color-warning);
-        }
-        
-        .data-table tbody tr.critical {
-            background: rgba(239, 68, 68, 0.05);
-            border-left: 3px solid var(--color-danger);
-        }
-        
-        /* Filters */
-        .filters {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .filter-label {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-        }
-        
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        /* Status Indicators */
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
-        
-        .status-dot.active { background: var(--color-success); animation: pulse 2s infinite; }
-        .status-dot.inactive { background: var(--text-disabled); }
-        .status-dot.suspicious { background: var(--color-warning); animation: pulse 2s infinite; }
-        .status-dot.critical { background: var(--color-danger); animation: pulse 1s infinite; }
-        
-        /* Incident Timeline */
-        .incident-timeline {
-            position: relative;
-            padding-left: 2rem;
-        }
-        
-        .incident-item {
-            position: relative;
-            padding: 1rem 0;
-            border-left: 2px solid var(--border-color);
-            padding-left: 2rem;
-            margin-left: 0.5rem;
-        }
-        
-        .incident-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 1.5rem;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--bg-card);
-            border: 2px solid var(--color-primary);
-        }
-        
-        .incident-item.critical::before {
-            border-color: var(--color-danger);
-            background: var(--color-danger);
-            box-shadow: 0 0 10px var(--color-danger);
-        }
-        
-        .incident-time {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
-        
-        .incident-title {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-        
-        .incident-details {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenShield — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --void:#03060D;--deep:#060D1A;--panel:#0A1628;--raised:#0F1F38;
+  --line:#1A3050;--line-light:#224070;
+  --neon:#00FFD1;--neon-dim:rgba(0,255,209,.18);--neon-glow:0 0 20px rgba(0,255,209,.4);
+  --blue:#0EA5E9;--blue-dim:rgba(14,165,233,.15);
+  --amber:#F59E0B;--amber-dim:rgba(245,158,11,.15);
+  --red:#EF4444;--red-bright:#FF2D55;--red-dim:rgba(239,68,68,.15);--red-glow:0 0 20px rgba(239,68,68,.5);
+  --green:#10B981;--green-dim:rgba(16,185,129,.15);
+  --txt:#E2EAF4;--txt-dim:#6B8DB5;--txt-faint:#2A4870;
+  --font-mono:'Space Mono',monospace;--font-ui:'Outfit',sans-serif;
+  --r:6px;--r-lg:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font-ui);background:var(--void);color:var(--txt);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,255,209,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,209,.03) 1px,transparent 1px);background-size:48px 48px}
+.corner-marks{position:fixed;inset:0;z-index:0;pointer-events:none}
+.corner-marks::before,.corner-marks::after{content:'';position:absolute;width:40px;height:40px;border-color:rgba(0,255,209,.15);border-style:solid}
+.corner-marks::before{top:12px;left:12px;border-width:2px 0 0 2px}
+.corner-marks::after{bottom:12px;right:12px;border-width:0 2px 2px 0}
+
+/* ── ATTACK WARNING BANNER ── */
+.attack-warning-bar{
+  display:none;position:sticky;top:0;z-index:300;
+  background:rgba(255,0,51,.13);border-bottom:2px solid rgba(255,45,85,.8);
+  padding:14px 24px;
+  animation:warning-flash 1.5s ease-in-out infinite;
+}
+.attack-warning-bar.show{display:flex;align-items:center;justify-content:space-between;gap:16px}
+@keyframes warning-flash{
+  0%,100%{background:rgba(255,0,51,.13);border-bottom-color:rgba(255,45,85,.8)}
+  50%{background:rgba(255,0,51,.24);border-bottom-color:rgba(255,45,85,1);box-shadow:0 4px 30px rgba(255,45,85,.35)}
+}
+.aw-left{display:flex;align-items:center;gap:14px}
+.aw-icon{font-size:28px;animation:icon-pulse 1s infinite}
+@keyframes icon-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.aw-title{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--red-bright);letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 20px rgba(255,45,85,.6)}
+.aw-desc{font-size:11px;color:#FF8A80;margin-top:3px;font-family:var(--font-mono)}
+.aw-right{display:flex;gap:10px;align-items:center}
+.aw-score{font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--red-bright);text-shadow:0 0 20px rgba(255,45,85,.6);min-width:80px;text-align:right}
+.aw-btn{padding:8px 18px;border-radius:var(--r);font-family:var(--font-ui);font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+.aw-btn.analyse{background:rgba(255,45,85,.25);color:var(--red-bright);border:1px solid rgba(255,45,85,.5)}
+.aw-btn.analyse:hover{background:rgba(255,45,85,.4)}
+.aw-btn.dismiss{background:transparent;color:var(--txt-dim);border:1px solid var(--line)}
+.aw-btn.dismiss:hover{color:var(--txt)}
+
+/* REVOKE FLASH */
+.revoke-flash-overlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(255,0,51,.08);pointer-events:none}
+.revoke-flash-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--red-bright);text-align:center;letter-spacing:3px;text-shadow:0 0 40px rgba(255,45,85,.8)}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:rgba(6,13,26,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.tb-brand{display:flex;align-items:center;gap:12px;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--neon);letter-spacing:2px;text-transform:uppercase}
+.tb-brand-icon{width:32px;height:32px;background:var(--neon-dim);border:1px solid rgba(0,255,209,.3);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:var(--neon-glow)}
+.tb-center{display:flex;gap:32px;align-items:center}
+.tb-stat{text-align:center}
+.tb-stat-val{font-family:var(--font-mono);font-size:18px;font-weight:700;line-height:1}
+.tb-stat-lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim);margin-top:2px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.live-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--green-dim);border:1px solid rgba(16,185,129,.3);border-radius:20px;font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--green);letter-spacing:1px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.tb-btn{padding:5px 14px;background:transparent;border:1px solid var(--line-light);border-radius:var(--r);font-family:var(--font-ui);font-size:12px;font-weight:600;color:var(--txt-dim);cursor:pointer;transition:all .15s}
+.tb-btn:hover{border-color:var(--neon);color:var(--neon)}
+.tb-btn.danger{border-color:rgba(239,68,68,.4);color:var(--red)}
+.tb-btn.danger:hover{background:var(--red-dim)}
+.tb-btn.amber-btn{border-color:rgba(245,158,11,.5);color:var(--amber);font-weight:700}
+.tb-btn.amber-btn:hover{background:var(--amber-dim)}
+.tb-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── LAYOUT ── */
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:280px 1fr 340px;grid-template-rows:auto 1fr;min-height:calc(100vh - 52px)}
+.stats-bar{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--line)}
+.stat-cell{padding:14px 20px;border-right:1px solid var(--line);transition:background .2s}
+.stat-cell:last-child{border-right:none}
+.stat-cell:hover{background:rgba(0,255,209,.03)}
+.sc-val{font-family:var(--font-mono);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;transition:color .4s}
+.sc-lbl{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--txt-dim)}
+.c-neon{color:var(--neon)}.c-blue{color:var(--blue)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}.c-green{color:var(--green)}
+.c-bright{color:var(--red-bright);text-shadow:0 0 12px var(--red-bright)}
+
+/* LEFT */
+.left-panel{background:var(--deep);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.panel-hd{padding:12px 16px 10px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-dim);display:flex;justify-content:space-between;align-items:center;background:var(--deep)}
+.panel-hd-count{background:var(--neon-dim);border:1px solid rgba(0,255,209,.25);border-radius:3px;padding:1px 6px;font-size:10px;color:var(--neon)}
+.user-list{flex:1;overflow-y:auto}
+.user-list::-webkit-scrollbar{width:3px}
+.user-list::-webkit-scrollbar-thumb{background:var(--line-light)}
+.user-tile{padding:11px 16px;border-bottom:1px solid rgba(26,48,80,.5);cursor:pointer;transition:background .15s;display:grid;grid-template-columns:1fr auto;gap:2px 8px}
+.user-tile:hover{background:rgba(0,255,209,.04)}
+.user-tile.threat-hi{background:rgba(239,68,68,.05);border-left:2px solid var(--red)}
+.user-tile.threat-crit{background:rgba(255,45,85,.08);border-left:2px solid var(--red-bright);animation:tile-pulse 2s infinite}
+@keyframes tile-pulse{0%,100%{opacity:1}50%{opacity:.75}}
+.ut-name{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ut-detail{font-family:var(--font-mono);font-size:10px;color:var(--txt-dim);grid-column:1;margin-top:1px}
+.ut-score{font-family:var(--font-mono);font-size:13px;font-weight:700;grid-row:1/3;align-self:center}
+.ut-badge{font-size:8px;font-weight:700;padding:2px 5px;border-radius:2px;text-transform:uppercase;letter-spacing:.4px;width:fit-content;margin-top:2px}
+.badge-safe{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.badge-low{background:rgba(14,165,233,.12);color:var(--blue);border:1px solid rgba(14,165,233,.2)}
+.badge-medium{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.badge-high{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.badge-critical{background:rgba(255,45,85,.18);color:var(--red-bright);border:1px solid rgba(255,45,85,.4)}
+
+/* CENTER */
+.center{background:var(--void);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.center::-webkit-scrollbar{width:4px}
+.center::-webkit-scrollbar-thumb{background:var(--line)}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+.chart-box canvas{max-height:160px}
+.box-title{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-dim);margin-bottom:12px}
+.inc-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;position:relative;margin-bottom:12px}
+.inc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.inc-card.sev-critical::before{background:var(--red-bright);box-shadow:0 2px 12px rgba(255,45,85,.5)}
+.inc-card.sev-high::before{background:var(--red)}
+.inc-card.sev-medium::before{background:var(--amber)}
+.inc-card.sev-low::before{background:var(--green)}
+.inc-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.inc-type{font-family:var(--font-mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.inc-time{font-size:11px;color:var(--txt-dim);font-family:var(--font-mono)}
+.sev-tag{padding:2px 8px;border-radius:3px;font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.sev-critical{background:rgba(255,45,85,.2);color:var(--red-bright);border:1px solid rgba(255,45,85,.4)}
+.sev-high{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.sev-medium{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.sev-low{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.inc-body{padding:14px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.inc-field{display:flex;flex-direction:column;gap:3px}
+.if-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--txt-dim)}
+.if-val{font-family:var(--font-mono);font-size:12px;color:var(--txt)}
+.analyse-btn{margin:0 16px 14px;padding:10px;background:var(--neon-dim);border:1px solid rgba(0,255,209,.35);border-radius:var(--r);font-family:var(--font-ui);font-size:12px;font-weight:700;color:var(--neon);cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 32px)}
+.analyse-btn:hover{background:rgba(0,255,209,.25);box-shadow:var(--neon-glow)}
+.empty-center{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:12px;color:var(--txt-faint);font-family:var(--font-mono);font-size:12px;text-align:center;padding:40px}
+.empty-icon{font-size:48px;opacity:.3}
+
+/* RIGHT */
+.right-panel{background:var(--deep);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.rp-tabs{display:flex;border-bottom:1px solid var(--line)}
+.rp-tab{flex:1;padding:11px 8px;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim);cursor:pointer;border:none;background:transparent;transition:all .15s;border-bottom:2px solid transparent}
+.rp-tab.active{color:var(--neon);border-bottom-color:var(--neon)}
+.rp-body{flex:1;overflow-y:auto;padding:14px}
+.rp-body::-webkit-scrollbar{width:3px}
+.rp-body::-webkit-scrollbar-thumb{background:var(--line)}
+.ti-section{margin-bottom:18px}
+.ti-title{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-dim);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.ti-badge{font-size:9px;padding:1px 6px;border-radius:3px;font-weight:700}
+.threat-meter{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
+.tm-score{font-family:var(--font-mono);font-size:36px;font-weight:700;line-height:1;transition:all .5s}
+.tm-label{font-size:10px;color:var(--txt-dim);margin-top:3px;letter-spacing:1px;text-transform:uppercase}
+.tm-bar-track{height:6px;background:var(--panel);border-radius:3px;overflow:hidden;margin-top:10px}
+.tm-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1),background .5s}
+.tm-sub{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--font-mono);font-size:9px;color:var(--txt-dim)}
+.threat-row{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:5px;background:var(--raised);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;transition:all .15s}
+.threat-row:hover{border-color:var(--neon)}
+.threat-row.crit{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.06);animation:tr-pulse 2s infinite}
+@keyframes tr-pulse{0%,100%{border-color:rgba(255,45,85,.4)}50%{border-color:rgba(255,45,85,.7)}}
+.tr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tr-dot.critical{background:var(--red-bright);box-shadow:0 0 8px var(--red-bright)}.tr-dot.high{background:var(--red)}.tr-dot.medium{background:var(--amber)}.tr-dot.low{background:var(--blue)}.tr-dot.safe{background:var(--green)}
+.tr-info{flex:1;min-width:0}
+.tr-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-detail{font-family:var(--font-mono);font-size:9px;color:var(--txt-dim);margin-top:1px}
+.tr-score{font-family:var(--font-mono);font-size:12px;font-weight:700}
+.geo-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(26,48,80,.4);font-size:11px}
+.geo-row:last-child{border-bottom:none}
+.geo-count{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--red)}
+.geo-bar{height:3px;background:var(--red);border-radius:2px;transition:width .6s;margin-top:2px}
+.atk-type-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(26,48,80,.4)}
+.atk-type-row:last-child{border-bottom:none}
+.atk-type-name{flex:1;font-size:11px}
+.atk-type-count{font-family:var(--font-mono);font-size:11px;font-weight:700;padding:1px 7px;border-radius:3px;min-width:28px;text-align:center}
+.engine-health{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;margin-bottom:10px}
+.eh-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:11px}
+.eh-dot{width:6px;height:6px;border-radius:50%;margin-right:7px;flex-shrink:0}
+.eh-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}.eh-dot.warn{background:var(--amber);box-shadow:0 0 6px var(--amber)}.eh-dot.err{background:var(--red);box-shadow:0 0 6px var(--red);animation:blink 1s infinite}
+.eh-label{display:flex;align-items:center;color:var(--txt-dim)}
+.eh-val{font-family:var(--font-mono);font-size:10px;font-weight:700}
+.reset-engine-btn{width:100%;padding:11px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.4);border-radius:var(--r-lg);font-family:var(--font-ui);font-size:13px;font-weight:700;color:var(--amber);cursor:pointer;letter-spacing:.5px;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.reset-engine-btn:hover{background:rgba(245,158,11,.15);box-shadow:0 0 20px rgba(245,158,11,.25)}
+.reset-engine-btn:disabled{opacity:.6;cursor:not-allowed}
+.feed-item{padding:8px 0;border-bottom:1px solid rgba(26,48,80,.4)}
+.fi-time{font-family:var(--font-mono);font-size:9px;color:var(--txt-dim);margin-bottom:2px}
+.fi-text{font-size:11px;font-family:var(--font-mono)}
+.fi-critical{color:var(--red-bright)}.fi-high{color:var(--red)}.fi-medium{color:var(--amber)}.fi-low{color:var(--green)}.fi-safe{color:var(--txt-dim)}
+.user-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(26,48,80,.4)}
+.ur-name{font-size:13px;font-weight:600}.ur-email{font-size:10px;color:var(--txt-dim);font-family:var(--font-mono);margin-top:1px}.ur-sess{font-family:var(--font-mono);font-size:11px;color:var(--neon)}
+
+/* ANALYSIS OVERLAY */
+.analysis-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(3,6,13,.92);backdrop-filter:blur(10px);align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto}
+.analysis-overlay.show{display:flex}
+.analysis-modal{width:100%;max-width:960px;background:var(--panel);border:1px solid var(--line-light);border-radius:12px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 0 1px rgba(0,255,209,.08);animation:modal-in .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes modal-in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.am-topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:rgba(255,45,85,.06);border-bottom:1px solid rgba(255,45,85,.25)}
+.am-title{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--red-bright);letter-spacing:2px;text-transform:uppercase}
+.am-close{width:28px;height:28px;border-radius:var(--r);background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.am-close:hover{background:var(--red-dim)}
+.am-body{padding:22px}
+.am-hero{display:grid;grid-template-columns:160px 1fr;gap:24px;margin-bottom:22px;align-items:center}
+.score-ring-wrap{position:relative;width:140px;height:140px}
+.score-ring-svg{width:140px;height:140px;transform:rotate(-90deg)}
+.score-ring-track{fill:none;stroke:var(--raised);stroke-width:10}
+.score-ring-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1),stroke .6s}
+.score-ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.sri-score{font-family:var(--font-mono);font-size:28px;font-weight:700;line-height:1}
+.sri-lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--txt-dim);margin-top:3px}
+.hi-threat{font-size:22px;font-weight:800;margin-bottom:6px}
+.hi-desc{font-size:13px;color:var(--txt-dim);line-height:1.6;margin-bottom:14px}
+.hi-actions{display:flex;gap:10px;flex-wrap:wrap}
+.hi-btn{padding:8px 18px;border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:var(--font-ui)}
+.hi-btn.revoke{background:rgba(255,45,85,.2);color:var(--red-bright);border:1px solid rgba(255,45,85,.4)}
+.hi-btn.revoke:hover{background:rgba(255,45,85,.35)}
+.hi-btn.terminated{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.3);cursor:default}
+.prog-wrap{margin:8px 0}
+.prog-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--txt-dim);margin-bottom:4px}
+.prog-track{height:4px;background:var(--raised);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.am-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.am-box{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px}
+.amb-title{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt-dim);margin-bottom:10px}
+.amb-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(26,48,80,.5)}
+.amb-row:last-child{border-bottom:none}
+.amb-k{font-size:11px;color:var(--txt-dim);flex-shrink:0}
+.amb-v{font-family:var(--font-mono);font-size:11px;text-align:right;max-width:58%;word-break:break-all}
+.amb-v.red{color:var(--red)}.amb-v.neon{color:var(--neon)}.amb-v.amber{color:var(--amber)}.amb-v.green{color:var(--green)}.amb-v.blue{color:var(--blue)}
+.map-container{position:relative;background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-bottom:20px}
+.map-label{position:absolute;top:10px;left:12px;z-index:10;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--neon);background:rgba(10,22,40,.8);padding:3px 8px;border-radius:3px;border:1px solid rgba(0,255,209,.2)}
+.factor-list{display:flex;flex-direction:column;gap:6px}
+.factor-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:var(--r);font-size:12px}
+.factor-row.threat{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);color:#FF8A80}
+.factor-row.ok{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.12);color:#6EE7B7}
+.tl-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(26,48,80,.4)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:4px}
+.tl-dot{width:8px;height:8px;border-radius:50%}
+.tl-dot.critical{background:var(--red-bright);box-shadow:0 0 8px var(--red-bright)}.tl-dot.high{background:var(--red)}.tl-dot.medium{background:var(--amber)}.tl-dot.low{background:var(--blue)}.tl-dot.normal{background:var(--txt-dim)}
+.tl-line{width:1px;flex:1;background:var(--line);margin-top:4px}
+.tl-action{font-family:var(--font-mono);font-size:11px;color:var(--txt);margin-bottom:2px}
+.tl-meta{font-size:10px;color:var(--txt-dim)}
+.alert-banner{display:none;background:rgba(255,45,85,.07);border:1px solid rgba(255,45,85,.35);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:18px;animation:banner-pulse 2s infinite}
+.alert-banner.show{display:block}
+@keyframes banner-pulse{0%,100%{border-color:rgba(255,45,85,.35)}50%{border-color:rgba(255,45,85,.7);box-shadow:0 0 20px rgba(255,45,85,.15)}}
+.ab-head{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--red-bright);margin-bottom:5px}
+.ab-body{font-size:12px;color:#FF8A80;line-height:1.6}
+.confirm-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(3,6,13,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center}
+.confirm-overlay.show{display:flex}
+.confirm-modal{background:var(--panel);border:1px solid rgba(245,158,11,.4);border-radius:var(--r-lg);padding:28px;max-width:400px;width:90%;box-shadow:0 0 40px rgba(245,158,11,.2);animation:modal-in .2s ease;text-align:center}
+.confirm-icon{font-size:36px;margin-bottom:12px}
+.confirm-title{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--amber);margin-bottom:10px;letter-spacing:1px}
+.confirm-body{font-size:12px;color:var(--txt-dim);line-height:1.7;margin-bottom:22px}
+.confirm-actions{display:flex;gap:10px}
+.confirm-btn{flex:1;padding:10px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font-ui)}
+.confirm-btn.do-confirm{background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.5);color:var(--amber)}
+.confirm-btn.do-confirm:hover{background:rgba(245,158,11,.3)}
+.confirm-btn.do-cancel{background:transparent;border:1px solid var(--line);color:var(--txt-dim)}
+.confirm-btn.do-cancel:hover{border-color:var(--txt-dim);color:var(--txt)}
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;padding:10px 16px;background:var(--panel);border:1px solid var(--neon);border-radius:var(--r);font-family:var(--font-mono);font-size:11px;color:var(--neon);box-shadow:var(--neon-glow);animation:toast-in .25s ease}
+.toast.err{border-color:var(--red);color:var(--red);box-shadow:var(--red-glow)}
+.toast.warn{border-color:var(--amber);color:var(--amber)}
+@keyframes toast-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.spinner{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-light);border-top-color:var(--neon);animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.no-data{padding:20px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--txt-faint)}
+@keyframes flash-num{0%{opacity:.2}100%{opacity:1}}
+.flash{animation:flash-num .4s ease}
+</style>
 </head>
 <body>
-    <div class="admin-container">
-        <!-- Navbar -->
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <div class="navbar-logo">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="navbar-title">TokenShield Admin</h1>
-                    <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Real-time Security Monitoring</p>
-                </div>
-            </div>
-            
-            <div class="navbar-actions">
-                <div class="refresh-indicator" id="refresh-indicator">
-                    <span>●</span>
-                    <span id="refresh-text">Auto-refresh: 5s</span>
-                </div>
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/dashboard'">
-                    User View
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="handleLogout()">
-                    Logout
-                </button>
-            </div>
-        </nav>
-        
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">Security Overview</h1>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-secondary btn-sm" onclick="refreshAllData()">
-                        🔄 Refresh All
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Stats Grid -->
-            <div class="admin-stats-grid">
-                <div class="stat-card primary">
-                    <div class="stat-value" id="total-users">-</div>
-                    <div class="stat-label">Total Users</div>
-                </div>
-                
-                <div class="stat-card success">
-                    <div class="stat-value" id="active-sessions">-</div>
-                    <div class="stat-label">Active Sessions</div>
-                </div>
-                
-                <div class="stat-card warning">
-                    <div class="stat-value" id="suspicious-sessions">-</div>
-                    <div class="stat-label">Suspicious</div>
-                </div>
-                
-                <div class="stat-card danger">
-                    <div class="stat-value" id="recent-incidents">-</div>
-                    <div class="stat-label">Incidents (24h)</div>
-                </div>
-                
-                <div class="stat-card" id="avg-score-card">
-                    <div class="stat-value" id="avg-anomaly-score">-</div>
-                    <div class="stat-label">Avg Threat Score</div>
-                </div>
-            </div>
-            
-            <!-- Charts -->
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Incidents by Severity</h3>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="severity-chart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Activity Trend (7 Days)</h3>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="activity-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Tabs -->
-            <div class="card">
-                <div class="tabs">
-                    <button class="tab active" onclick="switchTab('sessions')">Active Sessions</button>
-                    <button class="tab" onclick="switchTab('incidents')">Incidents</button>
-                    <button class="tab" onclick="switchTab('users')">Users</button>
-                </div>
-                
-                <!-- Sessions Tab -->
-                <div id="sessions-tab" class="tab-content active">
-                    <div class="filters">
-                        <div class="filter-group">
-                            <input type="checkbox" id="filter-suspicious" onchange="loadSessions()" checked>
-                            <label class="filter-label" for="filter-suspicious">Show Suspicious Only</label>
-                        </div>
-                        <button class="btn btn-secondary btn-sm" onclick="loadSessions()">
-                            Refresh
-                        </button>
-                    </div>
-                    
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>IP Address</th>
-                                    <th>Device</th>
-                                    <th>Created</th>
-                                    <th>Last Active</th>
-                                    <th>Threat Score</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sessions-tbody">
-                                <!-- Data will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Incidents Tab -->
-                <div id="incidents-tab" class="tab-content">
-                    <div class="filters">
-                        <div class="filter-group">
-                            <label class="filter-label">Severity:</label>
-                            <select class="form-select" id="severity-filter" onchange="loadIncidents()">
-                                <option value="">All</option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="critical">Critical</option>
-                            </select>
-                        </div>
-                        <button class="btn btn-secondary btn-sm" onclick="loadIncidents()">
-                            Refresh
-                        </button>
-                    </div>
-                    
-                    <div id="incidents-list" class="incident-timeline">
-                        <!-- Incidents will be loaded here -->
-                    </div>
-                </div>
-                
-                <!-- Users Tab -->
-                <div id="users-tab" class="tab-content">
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Created</th>
-                                    <th>Last Login</th>
-                                    <th>Active Sessions</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-tbody">
-                                <!-- Data will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
+<div class="corner-marks"></div>
+
+<!-- ATTACK WARNING BANNER -->
+<div class="attack-warning-bar" id="attack-warning-bar">
+  <div class="aw-left">
+    <div class="aw-icon">🚨</div>
+    <div>
+      <div class="aw-title" id="aw-title">ANOMALY DETECTED</div>
+      <div class="aw-desc" id="aw-desc">Suspicious activity identified · TokenShield responding</div>
     </div>
-    
-    <script src="/js/app.js"></script>
-    <script>
-        // Global variables
-        let refreshInterval;
-        let refreshCountdown;
-        let severityChart;
-        let activityChart;
-        const REFRESH_INTERVAL = 1000; // 1 second for real-time attack monitoring
-        
-        // Initialize admin panel
-        async function initAdmin() {
-            // Check authentication and admin role
-            if (!TokenShield.requireAuth() || !TokenShield.requireAdmin()) return;
-            
-            // Load all data
-            await refreshAllData();
-            
-            // Start auto-refresh
-            startAutoRefresh();
-            
-            // Initialize charts
-            initCharts();
-        }
-        
-        async function refreshAllData() {
-            await Promise.all([
-                loadAdminStats(),
-                loadSessions(),
-                loadIncidents(),
-                loadUsers()
-            ]);
-        }
-        
-        async function loadAdminStats() {
-            const result = await TokenShield.api.getAdminStats();
-            
-            if (result.success && result.data.success) {
-                const stats = result.data.stats;
-                
-                // Update stat cards
-                document.getElementById('total-users').textContent = stats.users.total;
-                document.getElementById('active-sessions').textContent = stats.sessions.active;
-                document.getElementById('suspicious-sessions').textContent = stats.sessions.suspicious;
-                document.getElementById('recent-incidents').textContent = stats.incidents.recent_24h;
-                
-                const avgScore = stats.anomaly.average_score;
-                document.getElementById('avg-anomaly-score').textContent = (avgScore * 100).toFixed(1) + '%';
-                
-                // Update card color based on average score
-                const scoreCard = document.getElementById('avg-score-card');
-                scoreCard.classList.remove('success', 'warning', 'danger', 'critical');
-                if (avgScore < 0.3) scoreCard.classList.add('success');
-                else if (avgScore < 0.5) scoreCard.classList.add('warning');
-                else if (avgScore < 0.7) scoreCard.classList.add('danger');
-                else scoreCard.classList.add('critical');
-                
-                // Update charts
-                updateCharts(stats);
-            }
-        }
-        
-        async function loadSessions() {
-            const suspiciousOnly = document.getElementById('filter-suspicious').checked;
-            const result = await TokenShield.api.getAdminSessions(true, suspiciousOnly);
-            
-            if (result.success && result.data.success) {
-                const sessions = result.data.sessions;
-                const tbody = document.getElementById('sessions-tbody');
-                
-                if (sessions.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" style="text-align: center; padding: 2rem;">
-                                No sessions found
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                tbody.innerHTML = sessions.map(session => {
-                    const rowClass = session.anomaly_score >= 0.7 ? 'critical' : 
-                                    session.anomaly_score >= 0.5 ? 'suspicious' : '';
-                    
-                    return `
-                        <tr class="${rowClass}">
-                            <td><strong>${session.username}</strong></td>
-                            <td><code>${session.ip_address}</code></td>
-                            <td>${parseUserAgent(session.user_agent)}</td>
-                            <td>${TokenShield.Utils.formatRelativeTime(session.created_at)}</td>
-                            <td>${TokenShield.Utils.formatRelativeTime(session.last_activity)}</td>
-                            <td>
-                                <span class="badge ${TokenShield.Utils.getSeverityBadge(session.anomaly_score)}">
-                                    ${(session.anomaly_score * 100).toFixed(1)}%
-                                </span>
-                            </td>
-                            <td>
-                                <span class="status-dot ${session.is_suspicious ? 'suspicious' : 'active'}"></span>
-                                ${session.is_suspicious ? 'Suspicious' : 'Normal'}
-                            </td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" onclick="adminRevokeSession(${session.id}, '${session.username}')">
-                                    Revoke
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-        }
-        
-        async function loadIncidents() {
-            const severity = document.getElementById('severity-filter')?.value || null;
-            const result = await TokenShield.api.getIncidents(severity, 7);
-            
-            if (result.success && result.data.success) {
-                const incidents = result.data.incidents;
-                const listEl = document.getElementById('incidents-list');
-                
-                if (incidents.length === 0) {
-                    listEl.innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                            No incidents in the last 7 days
-                        </div>
-                    `;
-                    return;
-                }
-                
-                listEl.innerHTML = incidents.map(incident => {
-                    const itemClass = incident.severity === 'critical' ? 'critical' : '';
-                    
-                    return `
-                        <div class="incident-item ${itemClass}">
-                            <div class="incident-time">${TokenShield.Utils.formatDateTime(incident.timestamp)}</div>
-                            <div class="incident-title">
-                                <span class="badge badge-${incident.severity}">${incident.severity.toUpperCase()}</span>
-                                ${incident.incident_type.replace(/_/g, ' ').toUpperCase()}
-                            </div>
-                            <div class="incident-details">
-                                User: <strong>${incident.username || 'Unknown'}</strong> • 
-                                Score: ${(incident.anomaly_score * 100).toFixed(1)}% • 
-                                Action: ${incident.action_taken || 'None'}
-                            </div>
-                            ${incident.details ? `<div class="incident-details" style="margin-top: 0.5rem;">${incident.details}</div>` : ''}
-                        </div>
-                    `;
-                }).join('');
-            }
-        }
-        
-        async function loadUsers() {
-            const result = await TokenShield.api.getUsers();
-            
-            if (result.success && result.data.success) {
-                const users = result.data.users;
-                const tbody = document.getElementById('users-tbody');
-                
-                tbody.innerHTML = users.map(user => `
-                    <tr>
-                        <td><strong>${user.username}</strong></td>
-                        <td>${user.email}</td>
-                        <td>
-                            <span class="badge ${user.is_admin ? 'badge-danger' : 'badge-primary'}">
-                                ${user.is_admin ? 'Admin' : 'User'}
-                            </span>
-                        </td>
-                        <td>${TokenShield.Utils.formatDateTime(user.created_at)}</td>
-                        <td>${user.last_login ? TokenShield.Utils.formatRelativeTime(user.last_login) : 'Never'}</td>
-                        <td>${user.active_sessions}</td>
-                        <td>
-                            <span class="status-dot ${user.is_active ? 'active' : 'inactive'}"></span>
-                            ${user.is_active ? 'Active' : 'Inactive'}
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-        
-        async function adminRevokeSession(sessionId, username) {
-            if (!TokenShield.Utils.confirm(`Revoke session for ${username}?`)) {
-                return;
-            }
-            
-            const result = await TokenShield.api.adminRevokeSession(sessionId, 'Revoked by admin');
-            
-            if (result.success && result.data.success) {
-                TokenShield.Utils.showToast('Session revoked successfully', 'success');
-                loadSessions();
-                loadAdminStats();
-            } else {
-                TokenShield.Utils.showToast('Failed to revoke session', 'danger');
-            }
-        }
-        
-        function initCharts() {
-            // Severity Chart (Doughnut)
-            const severityCtx = document.getElementById('severity-chart').getContext('2d');
-            severityChart = new Chart(severityCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Low', 'Medium', 'High', 'Critical'],
-                    datasets: [{
-                        data: [0, 0, 0, 0],
-                        backgroundColor: [
-                            'rgba(16, 185, 129, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(239, 68, 68, 0.8)',
-                            'rgba(220, 38, 38, 0.8)'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#1e293b'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: '#d1d5db' }
-                        }
-                    }
-                }
-            });
-            
-            // Activity Chart (Line)
-            const activityCtx = document.getElementById('activity-chart').getContext('2d');
-            activityChart = new Chart(activityCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Actions',
-                        data: [],
-                        borderColor: 'rgba(0, 212, 255, 1)',
-                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#9ca3af' },
-                            grid: { color: '#374151' }
-                        },
-                        x: {
-                            ticks: { color: '#9ca3af' },
-                            grid: { color: '#374151' }
-                        }
-                    }
-                }
-            });
-        }
-        
-        function updateCharts(stats) {
-            // Update severity chart
-            if (severityChart && stats.incidents.by_severity) {
-                const severity = stats.incidents.by_severity;
-                severityChart.data.datasets[0].data = [
-                    severity.low || 0,
-                    severity.medium || 0,
-                    severity.high || 0,
-                    severity.critical || 0
-                ];
-                severityChart.update();
-            }
-            
-            // Update activity chart
-            if (activityChart && stats.activity_trend) {
-                activityChart.data.labels = stats.activity_trend.map(d => d.date);
-                activityChart.data.datasets[0].data = stats.activity_trend.map(d => d.count);
-                activityChart.update();
-            }
-        }
-        
-        function startAutoRefresh() {
-            let countdown = REFRESH_INTERVAL / 1000;
-            
-            refreshInterval = setInterval(async () => {
-                await loadAdminStats();
-                await loadSessions();
-                countdown = REFRESH_INTERVAL / 1000;
-            }, REFRESH_INTERVAL);
-            
-            refreshCountdown = setInterval(() => {
-                countdown--;
-                document.getElementById('refresh-text').textContent = `Auto-refresh: ${countdown}s`;
-                
-                if (countdown <= 0) {
-                    countdown = REFRESH_INTERVAL / 1000;
-                }
-            }, 1000);
-        }
-        
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-        
-        function parseUserAgent(ua) {
-            if (!ua) return 'Unknown';
-            if (ua.includes('Chrome')) return '🌐 Chrome';
-            if (ua.includes('Firefox')) return '🦊 Firefox';
-            if (ua.includes('Safari')) return '🧭 Safari';
-            if (ua.includes('Mobile')) return '📱 Mobile';
-            return '💻 Desktop';
-        }
-        
-        async function handleLogout() {
-            if (!TokenShield.Utils.confirm('Logout from admin panel?')) return;
-            await TokenShield.api.logout();
-            window.location.href = '/';
-        }
-        
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', initAdmin);
-        
-        // Cleanup on unload
-        window.addEventListener('beforeunload', () => {
-            if (refreshInterval) clearInterval(refreshInterval);
-            if (refreshCountdown) clearInterval(refreshCountdown);
-        });
-  </script>
-    <script src="/js/device-fingerprint.js"></script>
+  </div>
+  <div class="aw-right">
+    <div class="aw-score" id="aw-score">—</div>
+    <button class="aw-btn analyse" onclick="openWarningAnalysis()">▶ Analyse Threat</button>
+    <button class="aw-btn dismiss" onclick="dismissWarning()">✕</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-brand"><div class="tb-brand-icon">🛡</div>TokenShield Command</div>
+  <div class="tb-center">
+    <div class="tb-stat"><div class="tb-stat-val c-neon" id="tb-users">—</div><div class="tb-stat-lbl">Users</div></div>
+    <div class="tb-stat"><div class="tb-stat-val c-blue" id="tb-sessions">—</div><div class="tb-stat-lbl">Sessions</div></div>
+    <div class="tb-stat"><div class="tb-stat-val c-amber" id="tb-suspicious">—</div><div class="tb-stat-lbl">Suspicious</div></div>
+    <div class="tb-stat"><div class="tb-stat-val c-red" id="tb-incidents">—</div><div class="tb-stat-lbl">Incidents 24h</div></div>
+  </div>
+  <div class="tb-right">
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <button class="tb-btn amber-btn" id="tb-reset-btn" onclick="confirmResetEngine()">⚡ Reset Engine</button>
+    <button class="tb-btn" onclick="window.location.href='/dashboard'">User View</button>
+    <button class="tb-btn danger" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="stats-bar">
+    <div class="stat-cell"><div class="sc-val c-neon"  id="sc-active">—</div><div class="sc-lbl">Active Sessions</div></div>
+    <div class="stat-cell"><div class="sc-val c-amber" id="sc-suspicious">—</div><div class="sc-lbl">Suspicious</div></div>
+    <div class="stat-cell"><div class="sc-val c-red"   id="sc-revoked">0</div><div class="sc-lbl">Revoked Sessions</div></div>
+    <div class="stat-cell"><div class="sc-val c-bright" id="sc-critical">—</div><div class="sc-lbl">Critical Threats</div></div>
+    <div class="stat-cell"><div class="sc-val c-green" id="sc-avgbeh">0.0%</div><div class="sc-lbl">Avg Anomaly</div></div>
+    <div class="stat-cell"><div class="sc-val c-blue"  id="sc-24h">—</div><div class="sc-lbl">Actions 24h</div></div>
+  </div>
+
+  <div class="left-panel">
+    <div class="panel-hd">Active Sessions <span class="panel-hd-count" id="sess-count">0</span></div>
+    <div class="user-list" id="session-list">
+      <div class="no-data"><span class="spinner"></span><br><br>Loading…</div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="charts-row">
+      <div class="chart-box"><div class="box-title">Incidents by Severity</div><canvas id="sev-chart"></canvas></div>
+      <div class="chart-box"><div class="box-title">Activity Trend (7 days)</div><canvas id="trend-chart"></canvas></div>
+    </div>
+    <div id="incidents-wrap">
+      <div class="empty-center"><div class="empty-icon">🛡</div>No incidents yet.<br>Run an attack simulation to see real-time data.</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="rp-tabs">
+      <button class="rp-tab active" onclick="rpSwitch('intel',this)">INTEL</button>
+      <button class="rp-tab" onclick="rpSwitch('feed',this)">FEED</button>
+      <button class="rp-tab" onclick="rpSwitch('users',this)">USERS</button>
+    </div>
+    <div class="rp-body" id="rp-body"></div>
+  </div>
+</div>
+
+<!-- ANALYSIS OVERLAY -->
+<div class="analysis-overlay" id="analysis-overlay">
+  <div class="analysis-modal">
+    <div class="am-topbar">
+      <div class="am-title" id="am-title">🔴 Threat Analysis</div>
+      <button class="am-close" onclick="closeAnalysis()">✕</button>
+    </div>
+    <div class="am-body" id="am-body">
+      <div style="text-align:center;padding:40px;color:var(--txt-dim);font-family:var(--font-mono);font-size:12px"><span class="spinner"></span><br><br>Fetching threat intelligence…</div>
+    </div>
+  </div>
+</div>
+
+<!-- REVOKE FLASH -->
+<div class="revoke-flash-overlay" id="revoke-flash">
+  <div class="revoke-flash-text">⛔ ALL SESSIONS REVOKED<br><span style="font-size:14px;opacity:.7">Attackers locked out · 2FA required</span></div>
+</div>
+
+<!-- CONFIRM RESET -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-modal">
+    <div class="confirm-icon">⚡</div>
+    <div class="confirm-title">RESET ENGINE?</div>
+    <div class="confirm-body">This will wipe all incidents, clear behavior logs, deactivate all sessions, and reset all user accounts to a clean state.<br><br>This cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn do-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn do-confirm" onclick="executeResetEngine()">⚡ Reset Now</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+'use strict';
+let sevChart,trendChart;
+let feedItems=[],rpTab='intel',adminStats={};
+let allSessions=[],allIncidents=[];
+let warningActive=false,warningDismissed=false,warningSessionId=null,lastHighestScore=0;
+let knownRevokedCount=0;
+const autoRevokedIds=new Set();
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  if(!window.TokenShield?.requireAuth()||!window.TokenShield?.requireAdmin())return;
+  initCharts();
+  rpSwitch('intel',document.querySelector('.rp-tab.active'));
+  await refreshAll();
+  setInterval(refreshAll,2000);
+});
+
+async function refreshAll(){
+  try{
+    await Promise.all([loadStats(),loadSessions(),loadIncidents()]);
+    checkForThreats();
+    if(rpTab==='intel')renderIntelPanel();
+    if(rpTab==='feed')renderFeed();
+    if(rpTab==='users')loadUsers();
+  }catch(e){console.error(e)}
+}
+
+/* ── STATS ── */
+async function loadStats(){
+  const r=await TokenShield.api.getAdminStats();
+  if(!r?.success||!r.data?.success)return;
+  const s=adminStats=r.data.stats;
+  setVal('tb-users',s.users?.total??'—');
+  setVal('tb-sessions',s.sessions?.active??'—');
+  setVal('tb-suspicious',s.sessions?.suspicious??'—');
+  setVal('tb-incidents',s.incidents?.recent_24h??'—');
+  setVal('sc-active',s.sessions?.active??'—');
+  setVal('sc-suspicious',s.sessions?.suspicious??'—');
+  const bySev=s.incidents?.by_severity||{};
+  setVal('sc-critical',bySev.critical||0);
+  const trend=s.activity_trend||[];
+  setVal('sc-24h',trend.length?trend[trend.length-1]?.count||0:0);
+  updateCharts(s);
+}
+
+/* ── SESSIONS ──
+   Fetch active sessions for the panel.
+   Fetch ALL sessions (active_only=false) ONLY for counting revoked + avg score.
+   This ensures the left panel never shows revoked sessions as "active".
+*/
+async function loadSessions(){
+  // Fetch active sessions for display
+  const rActive=await apiFetch('/api/admin/sessions?active_only=true&suspicious_only=false');
+  // Fetch all sessions (incl. inactive) for accurate counts
+  const rAll=await apiFetch('/api/admin/sessions?active_only=false&suspicious_only=false');
+
+  const activeSessions=rActive?.sessions||[];
+  const allSessionsRaw=rAll?.sessions||[];
+  allSessions=allSessionsRaw;
+
+  // Revoked count = sessions that are NOT active
+  const revokedSessions=allSessionsRaw.filter(s=>!s.is_active);
+  const newRevoked=revokedSessions.length;
+  if(newRevoked!==knownRevokedCount){
+    knownRevokedCount=newRevoked;
+    flashVal('sc-revoked',knownRevokedCount);
+  }else{
+    setVal('sc-revoked',knownRevokedCount);
+  }
+
+  // Avg anomaly over all sessions with score > 0
+  const scored=allSessionsRaw.filter(s=>(s.anomaly_score||0)>0);
+  if(scored.length>0){
+    const avg=scored.reduce((a,s)=>a+(s.anomaly_score||0),0)/scored.length;
+    setVal('sc-avgbeh',(avg*100).toFixed(1)+'%');
+  }else{
+    setVal('sc-avgbeh','0.0%');
+  }
+
+  renderSessionList(activeSessions);
+  await autoRevokeHighRisk(activeSessions);
+}
+
+async function autoRevokeHighRisk(activeSessions){
+  const criticals=activeSessions.filter(s=>(s.anomaly_score||0)>=0.85&&!autoRevokedIds.has(s.id));
+  if(!criticals.length)return;
+  let anyRevoked=false;
+  for(const s of criticals){
+    autoRevokedIds.add(s.id);
+    try{
+      const r=await fetch(`/api/admin/sessions/${s.id}/revoke`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
+        body:JSON.stringify({reason:'Auto-revoked: critical anomaly score'})
+      });
+      const d=await r.json();
+      if(d.success){
+        knownRevokedCount++;
+        flashVal('sc-revoked',knownRevokedCount);
+        anyRevoked=true;
+        toast(`⛔ Auto-revoked session #${s.id} (${Math.round((s.anomaly_score||0)*100)}%)`,false,true);
+      }
+    }catch(e){}
+  }
+  if(anyRevoked)showRevokeFlash();
+}
+
+function renderSessionList(sessions){
+  const list=$('session-list');
+  $('sess-count').textContent=sessions.length;
+  if(!sessions.length){list.innerHTML='<div class="no-data">No active sessions</div>';return}
+  const sorted=[...sessions].sort((a,b)=>(b.anomaly_score||0)-(a.anomaly_score||0));
+  list.innerHTML=sorted.map(s=>{
+    const score=s.anomaly_score||0,lvl=levelName(score),pct=(score*100).toFixed(1);
+    return `<div class="user-tile ${score>=0.85?'threat-crit':score>=0.65?'threat-hi':''}" onclick="openAnalysis(${s.id})">
+      <div class="ut-name">${s.username||'Unknown'}</div>
+      <div class="ut-score" style="color:${scoreColor(score)}">${pct}%</div>
+      <div class="ut-detail">${s.ip_address||'—'}</div>
+      <div class="ut-badge badge-${lvl}">${lvl}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── THREAT WARNING ── */
+function checkForThreats(){
+  if(warningDismissed)return;
+  const active=allSessions.filter(s=>s.is_active);
+  if(!active.length){hideWarning();return}
+  const top=active.reduce((b,s)=>(s.anomaly_score||0)>(b.anomaly_score||0)?s:b,active[0]);
+  const topScore=top.anomaly_score||0;
+  if(topScore>=0.50){
+    warningSessionId=top.id;
+    if(!warningActive||Math.abs(topScore-lastHighestScore)>=0.01){
+      lastHighestScore=topScore;
+      showWarning(top,Math.round(topScore*100));
+    }
+  }else{hideWarning()}
+}
+
+function showWarning(session,pct){
+  const bar=$('attack-warning-bar'),col=scoreColor(session.anomaly_score||0);
+  $('aw-title').textContent=`⚠ ANOMALY DETECTED — ${levelName(session.anomaly_score||0).toUpperCase()}`;
+  $('aw-desc').textContent=`Session: ${session.username||'Unknown'} · IP: ${session.ip_address||'—'} · Score: ${pct}% · TokenShield responding`;
+  $('aw-score').textContent=pct+'%';
+  $('aw-score').style.color=col;
+  if(pct>=85){bar.style.setProperty('--flash-bg','rgba(255,0,51,.24)')}
+  bar.classList.add('show');
+  warningActive=true;
+}
+function hideWarning(){$('attack-warning-bar').classList.remove('show');warningActive=false;warningSessionId=null;lastHighestScore=0}
+function dismissWarning(){warningDismissed=true;hideWarning();setTimeout(()=>{warningDismissed=false},30000)}
+function openWarningAnalysis(){if(warningSessionId)openAnalysis(warningSessionId)}
+
+function showRevokeFlash(){
+  const el=$('revoke-flash');
+  el.style.display='block';
+  el.style.opacity='0';
+  // Animate in
+  let op=0;
+  const fadeIn=setInterval(()=>{op=Math.min(op+0.08,1);el.style.opacity=op;if(op>=1)clearInterval(fadeIn)},30);
+  // Then fade out after 1.5s
+  setTimeout(()=>{
+    let out=1;
+    const fadeOut=setInterval(()=>{out=Math.max(out-0.05,0);el.style.opacity=out;if(out<=0){clearInterval(fadeOut);el.style.display='none'}},30);
+  },1500);
+}
+
+/* ── INCIDENTS ── */
+async function loadIncidents(){
+  const r=await TokenShield.api.getIncidents(null,7);
+  if(!r?.success||!r.data?.success)return;
+  allIncidents=r.data.incidents||[];
+  allIncidents.slice(0,10).forEach(inc=>{
+    if(!feedItems.find(f=>f.id===inc.id))
+      feedItems.unshift({id:inc.id,time:inc.timestamp,type:inc.incident_type,severity:inc.severity,score:inc.anomaly_score,ip:inc.ip_address,username:inc.username});
+  });
+  feedItems=feedItems.slice(0,60);
+  renderIncidents(allIncidents);
+}
+
+function renderIncidents(incidents){
+  const wrap=$('incidents-wrap');
+  if(!incidents.length){wrap.innerHTML='<div class="empty-center"><div class="empty-icon" style="font-size:36px">🛡</div><br>No incidents yet.</div>';return}
+  wrap.innerHTML=incidents.map(inc=>{
+    let det={};try{det=JSON.parse(inc.details||'{}')}catch(e){}
+    const sev=inc.severity||'safe',sc=inc.anomaly_score||0,col=scoreColor(sc);
+    return `<div class="inc-card sev-${sev}">
+      <div class="inc-head">
+        <div><div class="inc-type" style="color:${col}">${det.attack_type||inc.incident_type.replace(/_/g,' ').toUpperCase()}</div><div class="inc-time">${fmtTime(inc.timestamp)}</div></div>
+        <span class="sev-tag sev-${sev}">${sev.toUpperCase()}</span>
+      </div>
+      <div class="inc-body">
+        <div class="inc-field"><div class="if-lbl">User</div><div class="if-val">${inc.username||'—'}</div></div>
+        <div class="inc-field"><div class="if-lbl">Anomaly Score</div><div class="if-val" style="color:${col}">${(sc*100).toFixed(1)}%</div></div>
+        <div class="inc-field"><div class="if-lbl">Action</div><div class="if-val" style="font-size:10px">${inc.action_taken||'—'}</div></div>
+        ${det.city?`<div class="inc-field"><div class="if-lbl">Origin</div><div class="if-val" style="color:${col}">${det.flag||''} ${det.city}, ${det.country}</div></div><div class="inc-field"><div class="if-lbl">IP</div><div class="if-val">${det.ip_address||inc.ip_address||'—'}</div></div><div class="inc-field"><div class="if-lbl">Device</div><div class="if-val">${det.device||'—'}</div></div>`:''}
+      </div>
+      ${inc.session_id?`<button class="analyse-btn" onclick="openAnalysis(${inc.session_id})">▶ Start Analysis — Deep Threat Scan</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+/* ── INTEL PANEL ── */
+function renderIntelPanel(){
+  const active=allSessions.filter(s=>s.is_active);
+  const threats=active.filter(s=>(s.anomaly_score||0)>=0.5);
+  const crits=active.filter(s=>(s.anomaly_score||0)>=0.85);
+  const scored=allSessions.filter(s=>(s.anomaly_score||0)>0);
+  let liveAvg=0;
+  if(scored.length)liveAvg=scored.reduce((a,s)=>a+(s.anomaly_score||0),0)/scored.length;
+  const avgPct=Math.round(liveAvg*100),avgCol=scoreColor(liveAvg),avgLvl=levelName(liveAvg);
+  const geoMap={};
+  allIncidents.forEach(inc=>{let d={};try{d=JSON.parse(inc.details||'{}')}catch(e){}if(d.country&&d.country!=='Unknown'){if(!geoMap[d.country])geoMap[d.country]={flag:d.flag||'🌐',count:0};geoMap[d.country].count++}});
+  const geoEntries=Object.entries(geoMap).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
+  const maxGeo=geoEntries.length?geoEntries[0][1].count:1;
+  const typeMap={};
+  allIncidents.forEach(inc=>{const t=inc.incident_type||'unknown';typeMap[t]=(typeMap[t]||0)+1});
+  const typeEntries=Object.entries(typeMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const typeIcons={token_theft:'🔓',brute_force_attack:'🔨',sql_injection:'💉',phishing_attack:'🎣',credential_stuffing:'📋',man_in_the_middle:'🕵️',xss_attack:'🐛',privilege_escalation:'⬆',fraudulent_transfer:'💸',admin_revoke:'🔒'};
+  const bySev=adminStats.incidents?.by_severity||{};
+  $('rp-body').innerHTML=`
+    <div class="ti-section">
+      <div class="ti-title">Threat Posture<span class="ti-badge" style="background:${avgCol}22;color:${avgCol};border:1px solid ${avgCol}44">${avgLvl.toUpperCase()}</span></div>
+      <div class="threat-meter">
+        <div class="tm-score" style="color:${avgCol}">${avgPct}%</div>
+        <div class="tm-label">Avg Anomaly Score (all sessions)</div>
+        <div class="tm-bar-track"><div class="tm-bar-fill" style="width:${avgPct}%;background:${avgCol}"></div></div>
+        <div class="tm-sub"><span>${scored.length} scored sessions</span><span>${threats.length} active threats</span></div>
+      </div>
+    </div>
+    <div class="ti-section">
+      <div class="ti-title">Active Threats<span class="ti-badge" style="background:${crits.length?'rgba(255,45,85,.2)':'rgba(16,185,129,.15)'};color:${crits.length?'var(--red-bright)':'var(--green)'};border:1px solid ${crits.length?'rgba(255,45,85,.4)':'rgba(16,185,129,.3)'}">${threats.length} ACTIVE</span></div>
+      ${!threats.length
+        ?`<div style="padding:14px;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--green);background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:var(--r)">✓ No active threats · ${allIncidents.length} incidents logged</div>`
+        :threats.slice(0,5).map(s=>{const sc=s.anomaly_score||0,lvl=levelName(sc);return`<div class="threat-row ${sc>=0.85?'crit':''}" onclick="openAnalysis(${s.id})"><div class="tr-dot ${lvl}"></div><div class="tr-info"><div class="tr-name">${s.username||'Unknown'}</div><div class="tr-detail">${s.ip_address||'—'} · ${fmtRelTime(s.last_activity)}</div></div><div class="tr-score" style="color:${scoreColor(sc)}">${(sc*100).toFixed(0)}%</div></div>`}).join('')
+      }
+    </div>
+    ${geoEntries.length?`<div class="ti-section"><div class="ti-title">Origin Intelligence</div><div class="am-box" style="padding:10px 14px">${geoEntries.map(([c,d])=>`<div class="geo-row"><span>${d.flag} <span style="font-size:12px;font-weight:600">${c}</span></span><div style="text-align:right"><span class="geo-count">${d.count} attack${d.count!==1?'s':''}</span><div class="geo-bar" style="width:${Math.round(d.count/maxGeo*80)}px;margin-left:auto"></div></div></div>`).join('')}</div></div>`:''}
+    ${typeEntries.length?`<div class="ti-section"><div class="ti-title">Attack Breakdown</div><div class="am-box" style="padding:10px 14px">${typeEntries.map(([t,c])=>{const ico=typeIcons[t]||'⚠',col=t.includes('sql')||t.includes('privilege')||t.includes('mitm')?'var(--red-bright)':t.includes('token')||t.includes('phish')||t.includes('cred')?'var(--red)':'var(--amber)';return`<div class="atk-type-row"><span style="font-size:14px;width:20px">${ico}</span><span class="atk-type-name">${t.replace(/_/g,' ')}</span><span class="atk-type-count" style="background:${col}22;color:${col};border:1px solid ${col}44">${c}</span></div>`}).join('')}</div></div>`:''}
+    <div class="ti-section">
+      <div class="ti-title">Engine Health</div>
+      <div class="engine-health">
+        <div class="eh-row"><span class="eh-label"><span class="eh-dot ok"></span>Token Validator</span><span class="eh-val" style="color:var(--green)">ONLINE</span></div>
+        <div class="eh-row"><span class="eh-label"><span class="eh-dot ${crits.length?'err':threats.length?'warn':'ok'}"></span>Anomaly Detector</span><span class="eh-val" style="color:${crits.length?'var(--red-bright)':threats.length?'var(--amber)':'var(--green)'}">${crits.length?'CRITICAL':threats.length?'ELEVATED':'NOMINAL'}</span></div>
+        <div class="eh-row"><span class="eh-label"><span class="eh-dot ok"></span>WAF / Rate Limiter</span><span class="eh-val" style="color:var(--green)">ACTIVE</span></div>
+        <div class="eh-row"><span class="eh-label"><span class="eh-dot ok"></span>Session Monitor</span><span class="eh-val" style="color:var(--green)">${active.length} Active</span></div>
+        <div class="eh-row"><span class="eh-label"><span class="eh-dot ${bySev.critical>0?'err':'ok'}"></span>Incident Logger</span><span class="eh-val" style="color:${bySev.critical>0?'var(--red)':'var(--green)'}">${(bySev.critical||0)+(bySev.high||0)} High/Crit</span></div>
+      </div>
+      <button class="reset-engine-btn" id="reset-engine-btn" onclick="confirmResetEngine()">⚡ Reset Engine to Baseline</button>
+      <div style="font-size:10px;color:var(--txt-faint);text-align:center;margin-top:6px;font-family:var(--font-mono)">Clears incidents · Resets sessions · Unlocks users</div>
+    </div>`;
+}
+
+/* ── RESET ── */
+function confirmResetEngine(){$('confirm-overlay').classList.add('show')}
+function closeConfirm(){$('confirm-overlay').classList.remove('show')}
+async function executeResetEngine(){
+  closeConfirm();
+  const ib=$('reset-engine-btn'),tb=$('tb-reset-btn');
+  if(ib){ib.disabled=true;ib.textContent='⏳ Resetting…'}
+  if(tb){tb.disabled=true;tb.textContent='⏳ Resetting…'}
+  try{
+    const r=await apiFetch('/api/attack/reset-engine','POST',{});
+    if(r?.success){
+      toast('✅ Engine reset — system returned to baseline');
+      feedItems=[];allIncidents=[];allSessions=[];
+      knownRevokedCount=0;autoRevokedIds.clear();
+      warningActive=false;warningDismissed=false;lastHighestScore=0;
+      hideWarning();
+      ['sc-revoked','sc-avgbeh','sc-active','sc-suspicious','sc-critical'].forEach(id=>setVal(id,id==='sc-avgbeh'?'0.0%':'0'));
+      await refreshAll();
+    }else{
+      toast('❌ Reset failed: '+(r?.error||r?.message||'Unknown error'),true);
+    }
+  }catch(e){toast('❌ Reset error: '+e.message,true)}
+  finally{
+    if(ib){ib.disabled=false;ib.textContent='⚡ Reset Engine to Baseline'}
+    if(tb){tb.disabled=false;tb.textContent='⚡ Reset Engine'}
+  }
+}
+
+/* ── ANALYSIS MODAL ── */
+async function openAnalysis(sessionId){
+  $('am-body').innerHTML='<div style="text-align:center;padding:40px;color:var(--txt-dim);font-family:var(--font-mono);font-size:12px"><span class="spinner"></span><br><br>Fetching threat intelligence…</div>';
+  $('am-title').textContent='🔴 Threat Analysis — Session #'+sessionId;
+  $('analysis-overlay').classList.add('show');
+  const[sessRes,incRes]=await Promise.all([apiFetch('/api/auth/sessions'),apiFetch('/api/admin/incidents?days=7')]);
+  const sessionData=(sessRes?.sessions||[]).find(s=>s.id===sessionId)||allSessions.find(s=>s.id===sessionId)||{id:sessionId,ip_address:'—',user_agent:'—',anomaly_score:0,is_active:false};
+  const incidents=(incRes?.incidents||allIncidents).filter(i=>i.session_id===sessionId);
+  let hacker={};
+  if(incidents.length){try{hacker=JSON.parse(incidents[0].details||'{}')}catch(e){}}
+  renderAnalysisModal(sessionId,sessionData,incidents,hacker);
+}
+
+function renderAnalysisModal(sessionId,session,incidents,hacker){
+  const score=session.anomaly_score||0,pct=Math.round(score*100),lvl=levelName(score),col=scoreColor(score);
+  const isRevoked=!session.is_active,C=364,offset=C-(C*score);
+  const factors=buildFactors(score,hacker,session);
+  const atkCoords=geoCoords(hacker.ip_address||session.ip_address,hacker.city);
+  $('am-title').textContent=`🔴 Threat Analysis — ${hacker.attack_type||'Session #'+sessionId}`;
+  $('am-body').innerHTML=`
+    ${score>=0.65?`<div class="alert-banner show"><div class="ab-head">🚨 ${isRevoked?'✅ BREACH CONTAINED':'⚠ ACTIVE SECURITY BREACH'} — ${hacker.city||'Unknown'}, ${hacker.country||'Unknown'}</div><div class="ab-body">Unauthorized access from <strong>${hacker.ip_address||session.ip_address}</strong>. ${isRevoked?'✅ Session auto-terminated by TokenShield.':'⚠ Session still active. Revoke immediately.'}</div></div>`:''}
+    <div class="am-hero">
+      <div class="score-ring-wrap">
+        <svg class="score-ring-svg" viewBox="0 0 140 140"><circle class="score-ring-track" cx="70" cy="70" r="58"/><circle class="score-ring-fill" cx="70" cy="70" r="58" stroke="${col}" stroke-dasharray="${C}" stroke-dashoffset="${offset}"/></svg>
+        <div class="score-ring-inner"><div class="sri-score" style="color:${col}">${pct}%</div><div class="sri-lbl">Risk Score</div></div>
+      </div>
+      <div>
+        <div class="hi-threat" style="color:${col}">${levelTitle(lvl)}</div>
+        <div class="hi-desc">${levelDesc(lvl,hacker,session)}</div>
+        <div class="hi-actions">
+          ${!isRevoked?`<button class="hi-btn revoke" onclick="revokeSession(${sessionId})">⛔ Revoke Session</button>`:`<div class="hi-btn terminated">✓ Session Terminated</div>`}
+          <div style="padding:8px 18px;border-radius:var(--r);font-size:12px;font-weight:700;background:${isRevoked?'rgba(16,185,129,.15)':'rgba(14,165,233,.15)'};color:${isRevoked?'var(--green)':'var(--blue)'};border:1px solid ${isRevoked?'rgba(16,185,129,.3)':'rgba(14,165,233,.3)'}">
+            ${isRevoked?'🔒 Revoked':`🔵 Session #${sessionId} Active`}
+          </div>
+        </div>
+        <div class="prog-wrap" style="margin-top:14px"><div class="prog-lbl"><span>Threat Level</span><span>${pct}%</span></div><div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div></div>
+      </div>
+    </div>
+    ${atkCoords?`<div class="map-container"><div class="map-label">▸ LIVE GEOLOCATION TRACKING</div>${buildMapSVG(atkCoords)}</div>`:''}
+    <div class="am-grid2">
+      <div class="am-box">
+        <div class="amb-title">Attacker Identity</div>
+        ${row('IP Address',hacker.ip_address||session.ip_address||'—','red')}
+        ${row('Location',hacker.city?`${hacker.flag||''} ${hacker.city}, ${hacker.country}`:'—','red')}
+        ${row('ISP',hacker.isp||'—','amber')}
+        ${row('VPN/Proxy',hacker.vpn_detected?'⚠ DETECTED':'✓ None',hacker.vpn_detected?'red':'green')}
+        ${row('Device',hacker.device||parseUA(session.user_agent),'')}
+        ${row('Browser',hacker.browser||'—','')}
+        ${row('Local Time',hacker.local_time?`${hacker.local_time} ${hacker.timezone||''}`:'—','amber')}
+        ${hacker.threat_tags?.length?row('Threat Tags',hacker.threat_tags.join(' • '),'red'):''}
+      </div>
+      <div class="am-box">
+        <div class="amb-title">Session Details</div>
+        ${row('Session ID','#'+sessionId,'neon')}
+        ${row('Username',session.username||'—','neon')}
+        ${row('Status',isRevoked?'✓ REVOKED':'⚠ ACTIVE',isRevoked?'green':'red')}
+        ${row('Anomaly Score',pct+'%',lvl==='critical'||lvl==='high'?'red':'amber')}
+        ${row('Threat Level',lvl.toUpperCase(),lvl==='critical'||lvl==='high'?'red':'amber')}
+        ${row('Created',fmtTime(session.created_at||'—'),'')}
+        ${row('Last Active',fmtRelTime(session.last_activity||'—'),'')}
+        ${row('Attack Type',hacker.attack_type||'—','amber')}
+      </div>
+    </div>
+    ${hacker.financial_impact?`<div class="am-box" style="margin-bottom:14px"><div class="amb-title">Security Response</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px"><div style="text-align:center;padding:10px;background:var(--green-dim);border-radius:var(--r);border:1px solid rgba(16,185,129,.2)"><div style="font-family:var(--font-mono);font-size:11px;color:var(--green)">${hacker.financial_impact}</div><div style="font-size:9px;color:var(--txt-dim);margin-top:3px">FINANCIAL IMPACT</div></div><div style="text-align:center;padding:10px;background:var(--neon-dim);border-radius:var(--r);border:1px solid rgba(0,255,209,.2)"><div style="font-family:var(--font-mono);font-size:11px;color:var(--neon)">${hacker.response_time||'<2s'}</div><div style="font-size:9px;color:var(--txt-dim);margin-top:3px">RESPONSE TIME</div></div><div style="text-align:center;padding:10px;background:var(--blue-dim);border-radius:var(--r);border:1px solid rgba(14,165,233,.2)"><div style="font-family:var(--font-mono);font-size:11px;color:var(--blue)">${incidents.length} Incidents</div><div style="font-size:9px;color:var(--txt-dim);margin-top:3px">LOGGED</div></div></div>${(hacker.actions_taken||[]).length?`<div style="margin-top:12px;font-size:11px;color:var(--txt-dim)">${hacker.actions_taken.map(a=>`<div style="padding:3px 0;border-bottom:1px solid var(--line)">✓ ${a}</div>`).join('')}</div>`:''}</div>`:''}
+    <div style="margin-bottom:20px"><div class="box-title" style="margin-bottom:10px">Detection Factors</div><div class="factor-list">${factors.map(f=>`<div class="factor-row ${f.threat?'threat':'ok'}"><span>${f.threat?'⚠':'✓'}</span><span>${f.text}</span></div>`).join('')}</div></div>
+    ${incidents.length?`<div style="margin-bottom:20px"><div class="box-title" style="margin-bottom:10px">Incident Timeline (${incidents.length})</div><div class="am-box">${incidents.map((inc,i)=>`<div class="tl-item"><div class="tl-dot-wrap"><div class="tl-dot ${inc.severity}"></div>${i<incidents.length-1?'<div class="tl-line"></div>':''}</div><div><div class="tl-action">${inc.incident_type.replace(/_/g,' ').toUpperCase()}</div><div class="tl-meta">${fmtTime(inc.timestamp)} · Score: ${(inc.anomaly_score*100).toFixed(1)}% · ${inc.action_taken||'—'}</div></div></div>`).join('')}</div></div>`:''}`;
+  setTimeout(animateAttackLine,100);
+}
+
+function buildMapSVG(atk){
+  const vx=400,vy=180;
+  return`<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:260px;background:#060F1E"><defs><pattern id="mg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40,0 L0,0 0,40" fill="none" stroke="rgba(0,255,209,.05)" stroke-width="0.5"/></pattern><filter id="gr"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="gn"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="800" height="400" fill="url(#mg)"/>
+  <g fill="rgba(14,165,233,.06)" stroke="rgba(14,165,233,.12)" stroke-width="0.5"><path d="M80,80 L200,60 L220,100 L240,140 L200,180 L160,200 L120,190 L90,170 L70,140 Z"/><path d="M160,210 L200,200 L220,240 L210,310 L180,350 L150,340 L140,300 L150,250 Z"/><path d="M340,70 L420,60 L440,90 L430,120 L400,130 L360,120 L340,100 Z"/><path d="M360,140 L420,130 L450,160 L460,240 L430,310 L390,320 L360,290 L345,220 L350,170 Z"/><path d="M440,60 L640,50 L680,80 L670,130 L600,160 L520,170 L460,150 L440,120 Z"/><path d="M600,230 L680,220 L700,260 L660,290 L610,280 Z"/></g>
+  ${[100,160,200,240,280,320].map(y=>`<line x1="0" y1="${y}" x2="800" y2="${y}" stroke="rgba(0,255,209,.04)" stroke-width="0.5"/>`).join('')}
+  ${[80,160,240,320,400,480,560,640,720].map(x=>`<line x1="${x}" y1="0" x2="${x}" y2="400" stroke="rgba(0,255,209,.04)" stroke-width="0.5"/>`).join('')}
+  <line id="attack-line" x1="${atk.sx}" y1="${atk.sy}" x2="${vx}" y2="${vy}" stroke="rgba(255,45,85,0)" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <circle cx="${atk.sx}" cy="${atk.sy}" r="5" fill="#FF2D55" filter="url(#gr)"/><circle cx="${atk.sx}" cy="${atk.sy}" r="3" fill="#FF0033"/>
+  <circle cx="${atk.sx}" cy="${atk.sy}" r="20" fill="none" stroke="rgba(255,45,85,.25)" stroke-width="1"><animate attributeName="r" from="8" to="32" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.8" to="0" dur="2s" repeatCount="indefinite"/></circle>
+  <circle cx="${atk.sx}" cy="${atk.sy}" r="14" fill="none" stroke="rgba(255,45,85,.2)" stroke-width="1"><animate attributeName="r" from="5" to="22" dur="2s" begin="0.6s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.6" to="0" dur="2s" begin="0.6s" repeatCount="indefinite"/></circle>
+  <circle cx="${vx}" cy="${vy}" r="4" fill="#00FFD1" filter="url(#gn)"/>
+  <circle cx="${vx}" cy="${vy}" r="14" fill="none" stroke="rgba(0,255,209,.2)" stroke-width="1"><animate attributeName="r" from="6" to="18" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.7" to="0" dur="2.5s" repeatCount="indefinite"/></circle>
+  <rect x="${atk.sx-32}" y="${atk.sy-32}" width="64" height="16" rx="2" fill="rgba(255,45,85,.25)" stroke="rgba(255,45,85,.4)" stroke-width="0.5"/>
+  <text x="${atk.sx}" y="${atk.sy-21}" text-anchor="middle" fill="#FF2D55" font-size="8" font-family="Space Mono,monospace">${atk.label}</text>
+  <rect x="${vx-28}" y="${vy-32}" width="56" height="16" rx="2" fill="rgba(0,255,209,.15)" stroke="rgba(0,255,209,.3)" stroke-width="0.5"/>
+  <text x="${vx}" y="${vy-21}" text-anchor="middle" fill="#00FFD1" font-size="8" font-family="Space Mono,monospace">SERVER</text></svg>`;
+}
+
+function animateAttackLine(){
+  const line=document.getElementById('attack-line');
+  if(!line)return;
+  let op=0;
+  const a=setInterval(()=>{op=Math.min(op+0.05,0.75);line.setAttribute('stroke',`rgba(255,45,85,${op})`);if(op>=0.75)clearInterval(a)},30);
+}
+
+function geoCoords(ip,city){
+  const ipMap={'185.220.101.42':{sx:490,sy:100,label:'MOSCOW'},'202.112.51.89':{sx:620,sy:110,label:'BEIJING'},'197.210.55.23':{sx:400,sy:240,label:'LAGOS'},'89.45.67.123':{sx:420,sy:90,label:'BUCHAREST'},'45.153.160.2':{sx:100,sy:200,label:'UNKNOWN'}};
+  const cMap={Moscow:{sx:490,sy:100,label:'MOSCOW'},Beijing:{sx:620,sy:110,label:'BEIJING'},Lagos:{sx:400,sy:240,label:'LAGOS'},Bucharest:{sx:420,sy:90,label:'BUCHAREST'},Unknown:{sx:100,sy:200,label:'UNKNOWN'}};
+  return(ip&&ipMap[ip])||(city&&cMap[city])||null;
+}
+
+function buildFactors(score,hacker,session){
+  const f=[];
+  if(score>=0.30)f.push({threat:true,text:'IP address mismatch — differs from victim\'s session origin'});
+  if(score>=0.50)f.push({threat:true,text:'User-agent mismatch — browser fingerprint does not match victim'});
+  if(score>=0.65)f.push({threat:true,text:'Rapid automated requests — bot-like timing pattern detected'});
+  if(score>=0.70)f.push({threat:true,text:'Large financial transfer attempted — exceeds safe threshold'});
+  if(hacker.country&&['Russia','China','Nigeria','Romania'].includes(hacker.country))f.push({threat:true,text:`High-risk geolocation — ${hacker.country}`});
+  if(hacker.vpn_detected)f.push({threat:true,text:'VPN / anonymous proxy detected on attacker connection'});
+  if(score<0.3)f.push({threat:false,text:'No significant threat indicators detected'});
+  f.push({threat:false,text:'TokenShield monitoring active — all anomalies captured in real time'});
+  return f;
+}
+
+function row(k,v,cls){return`<div class="amb-row"><span class="amb-k">${k}</span><span class="amb-v ${cls}">${v}</span></div>`}
+
+async function revokeSession(sessionId){
+  if(!confirm('Revoke this session immediately?'))return;
+  const r=await fetch(`/api/admin/sessions/${sessionId}/revoke`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},body:JSON.stringify({reason:'Admin revoked via Command Center'})}).then(r=>r.json()).catch(e=>({error:e.message}));
+  if(r?.success){
+    knownRevokedCount++;
+    flashVal('sc-revoked',knownRevokedCount);
+    showRevokeFlash();
+    toast('✓ Session revoked — attacker blocked');
+    await openAnalysis(sessionId);
+    await refreshAll();
+  }else{toast('❌ Revoke failed: '+(r?.error||'Unknown'),true)}
+}
+
+function closeAnalysis(){$('analysis-overlay').classList.remove('show')}
+
+function rpSwitch(name,btn){
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');rpTab=name;
+  if(name==='intel')renderIntelPanel();
+  if(name==='feed')renderFeed();
+  if(name==='users')loadUsers();
+}
+
+function renderFeed(){
+  if(!feedItems.length){$('rp-body').innerHTML='<div class="no-data">Waiting for events…</div>';return}
+  $('rp-body').innerHTML=feedItems.map(f=>`<div class="feed-item"><div class="fi-time">${fmtTime(f.time)}</div><div class="fi-text fi-${f.severity}">[${f.severity.toUpperCase()}] ${f.type.replace(/_/g,' ').toUpperCase()} · ${f.ip||'?'} · ${(f.score*100).toFixed(0)}%</div></div>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN DASHBOARD JS PATCH
+// Find these two functions in frontend/admin.html and replace them exactly.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// REPLACE your existing poll() or main refresh function with this.
+// It adds calls to /api/admin/live-threat and /api/admin/recent-sessions
+// so the avg anomaly score updates in real time during attacks.
+
+async function refreshDashboard() {
+  try {
+    const [statsRes, incRes, threatRes, sessRes] = await Promise.all([
+      apiFetch('/api/admin/stats'),
+      apiFetch('/api/admin/incidents?days=1&limit=30'),
+      apiFetch('/api/admin/live-threat'),
+      apiFetch('/api/admin/recent-sessions?limit=100'),
+    ]);
+
+    if (statsRes?.success)  updateStats(statsRes.stats);
+    if (incRes?.success)    updateIncidentFeed(incRes.incidents || []);
+    if (threatRes?.success) updateLiveThreat(threatRes);
+    if (sessRes?.success)   updateSessionList(sessRes.sessions || []);
+
+  } catch(e) {
+    console.error('[Admin] refresh error:', e);
+  }
+}
+
+// NEW: drives the Avg Anomaly gauge and threat posture badge
+function updateLiveThreat(data) {
+  if (!data) return;
+
+  const avgPct = Math.round((data.avg_score || 0) * 100);
+  const maxPct = Math.round((data.max_score || 0) * 100);
+
+  // Update the avg anomaly display (id="sc-avgbeh" in your HTML)
+  const el = document.getElementById('sc-avgbeh');
+  if (el) {
+    el.textContent = avgPct + '%';
+    el.className = 'sc-val ' + (
+      avgPct >= 85 ? 'c-red' :
+      avgPct >= 50 ? 'c-amber' :
+      avgPct >= 30 ? 'c-yellow' : 'c-green'
+    );
+  }
+
+  // Update critical threats counter
+  const ctEl = document.getElementById('sc-critical');
+  if (ctEl && data.count !== undefined) {
+    ctEl.textContent = data.count;
+    ctEl.className = 'sc-val ' + (data.count > 0 ? 'c-red' : 'c-green');
+  }
+
+  // Update threat posture badge
+  const postureEl = document.getElementById('threat-posture-badge') ||
+                    document.querySelector('.threat-posture');
+  if (postureEl) {
+    const level = data.threat_level || 'safe';
+    postureEl.textContent = level.toUpperCase();
+    postureEl.className = postureEl.className.replace(/safe|low|medium|high|critical/g, '') + ' ' + level;
+  }
+
+  // Flash warning bar if critical
+  if (data.threat_level === 'critical' && data.latest) {
+    showAttackWarning(data.latest);
+  }
+}
+
+// REPLACE your existing updateStats() to also read avg_anomaly_score
+function updateStats(stats) {
+  if (!stats) return;
+
+  // Sessions
+  setVal('sc-active',    stats.sessions?.active     ?? 0);
+  setVal('sc-suspicious',stats.sessions?.suspicious ?? 0);
+  setVal('sc-revoked',   stats.sessions?.revoked    ?? 0);
+
+  // Incidents
+  setVal('sc-incidents', stats.incidents?.recent_24h ?? 0);
+  setVal('sc-critical',  stats.incidents?.critical_1h ?? stats.incidents?.by_severity?.critical ?? 0);
+
+  // FIX: use avg_anomaly_score from stats as fallback when live-threat hasn't loaded yet
+  const avgFromStats = Math.round((stats.avg_anomaly_score || 0) * 100);
+  if (avgFromStats > 0) {
+    const el = document.getElementById('sc-avgbeh');
+    if (el && el.textContent === '0.0%') {   // only update if live-threat hasn't set it
+      el.textContent = avgFromStats + '%';
+      el.className = 'sc-val ' + (
+        avgFromStats >= 85 ? 'c-red' :
+        avgFromStats >= 50 ? 'c-amber' :
+        avgFromStats >= 30 ? 'c-yellow' : 'c-green'
+      );
+    }
+  }
+
+  // Redis
+  setVal('sc-blocked',  stats.redis?.blocked_tokens  ?? 0);
+  setVal('sc-banned',   stats.redis?.banned_devices   ?? 0);
+  setVal('sc-locked',   stats.redis?.locked_accounts  ?? 0);
+
+  // Activity trend chart (if you have one)
+  if (stats.activity_trend) updateActivityChart(stats.activity_trend);
+}
+
+// REPLACE your updateSessionList() — now works with revoked sessions too
+function updateSessionList(sessions) {
+  if (!sessions?.length) return;
+
+  // Compute avg anomaly from ALL recent sessions (not just active)
+  const scored = sessions.filter(s => (s.anomaly_score || 0) > 0);
+  if (scored.length) {
+    const avg = scored.reduce((a, s) => a + (s.anomaly_score || 0), 0) / scored.length;
+    const avgPct = Math.round(avg * 100);
+    // Only update if live-threat hasn't already set a higher value
+    const el = document.getElementById('sc-avgbeh');
+    if (el) {
+      const current = parseInt(el.textContent) || 0;
+      if (avgPct > current) {
+        el.textContent = avgPct + '%';
+        el.className = 'sc-val ' + (
+          avgPct >= 85 ? 'c-red' :
+          avgPct >= 50 ? 'c-amber' :
+          avgPct >= 30 ? 'c-yellow' : 'c-green'
+        );
+      }
+    }
+  }
+
+  // Active sessions for the sidebar list
+  const activeSessions = sessions.filter(s => s.is_active);
+  setVal('sc-active', activeSessions.length);
+
+  // Auto-revoke any active sessions with critical scores
+  const autoRevokedIds = new Set();
+  const criticals = activeSessions.filter(s => (s.anomaly_score || 0) >= 0.85);
+  for (const s of criticals) {
+    if (!autoRevokedIds.has(s.id)) {
+      autoRevokedIds.add(s.id);
+      apiFetch(`/api/admin/sessions/${s.id}/revoke`, 'POST', {
+        reason: 'Auto-revoked: critical anomaly score'
+      }).then(() => {
+        toast(`⛔ Auto-revoked session #${s.id} (${Math.round((s.anomaly_score||0)*100)}%)`, false, true);
+      });
+    }
+  }
+
+  // Render session cards — show top 20 by score
+  const sorted = [...sessions].sort((a, b) => (b.anomaly_score||0) - (a.anomaly_score||0));
+  renderSessionCards(sorted.slice(0, 20));
+}
+
+// Helper: show attack warning bar
+function showAttackWarning(incident) {
+  const bar = document.getElementById('attack-warning-bar');
+  if (!bar) return;
+  const score = incident.anomaly_score || 0;
+  bar.style.display = 'block';
+  const titleEl = document.getElementById('aw-title');
+  if (titleEl) {
+    titleEl.textContent = `⚠ ANOMALY DETECTED — ${(incident.severity || 'UNKNOWN').toUpperCase()}`;
+  }
+  const scoreEl = document.getElementById('aw-score');
+  if (scoreEl) scoreEl.textContent = Math.round(score * 100) + '%';
+  const ipEl = document.getElementById('aw-ip');
+  if (ipEl) ipEl.textContent = incident.ip || '?';
+}
+
+// ─── BANKING: make transfers visible on admin ─────────────────────────────────
+// Add this to your poll cycle — call every 5 seconds
+async function refreshTransferFeed() {
+  const res = await apiFetch('/api/admin/transfer-feed?limit=10');
+  if (!res?.success) return;
+
+  const container = document.getElementById('transfer-feed') ||
+                    document.getElementById('recent-transactions');
+  if (!container) return;
+
+  container.innerHTML = res.transactions.map(t => `
+    <div class="feed-item transfer-item">
+      <span class="fi-time">${(t.timestamp||'').slice(11,19)}</span>
+      <span class="fi-text" style="color:var(--amber)">
+        ${t.type?.toUpperCase() || 'TRANSFER'} — $${parseFloat(t.amount||0).toFixed(2)}
+        ${t.description ? '· ' + t.description : ''}
+      </span>
+    </div>
+  `).join('') || '<div class="feed-item"><span class="fi-text">No recent transfers</span></div>';
+}
+
+// ─── HOW TO WIRE THIS INTO YOUR EXISTING admin.html ──────────────────────────
+//
+// 1. Find your DOMContentLoaded handler and change the poll interval to call
+//    refreshDashboard() instead of whatever it calls now:
+//
+//    document.addEventListener('DOMContentLoaded', () => {
+//      TOKEN = localStorage.getItem('token') || '';
+//      if (!TOKEN) { window.location.href = '/login'; return; }
+//      refreshDashboard();                          // immediate first load
+//      setInterval(refreshDashboard, 3000);         // every 3s
+//      setInterval(refreshTransferFeed, 5000);      // transfers every 5s
+//    });
+//
+// 2. Make sure you have a setVal() helper:
+//    function setVal(id, val) {
+//      const el = document.getElementById(id);
+//      if (el) el.textContent = val;
+//    }
+//
+// 3. Make sure apiFetch() is defined as in simulation_dashboard_fixed_js.js
+async function loadUsers(){
+  const r=await TokenShield.api.getUsers();
+  if(!r?.success||!r.data?.success)return;
+  $('rp-body').innerHTML=(r.data.users||[]).map(u=>`<div class="user-row"><div><div class="ur-name">${u.username}</div><div class="ur-email">${u.email}</div></div><div class="ur-sess">${u.active_sessions||0} sess</div></div>`).join('');
+}
+
+function initCharts(){
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6B8DB5',font:{size:10,family:'Space Mono'}}}},scales:{y:{ticks:{color:'#6B8DB5',font:{size:10}},grid:{color:'#1A3050'}},x:{ticks:{color:'#6B8DB5',font:{size:9}},grid:{color:'#1A3050'}}}};
+  sevChart=new Chart($('sev-chart').getContext('2d'),{type:'doughnut',data:{labels:['Low','Medium','High','Critical'],datasets:[{data:[0,0,0,0],backgroundColor:['rgba(14,165,233,.7)','rgba(245,158,11,.7)','rgba(239,68,68,.7)','rgba(255,45,85,.9)'],borderWidth:1,borderColor:'#0A1628'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6B8DB5',font:{size:10}}}}}});
+  trendChart=new Chart($('trend-chart').getContext('2d'),{type:'line',data:{labels:[],datasets:[{label:'Actions',data:[],borderColor:'rgba(0,255,209,1)',backgroundColor:'rgba(0,255,209,.07)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'rgba(0,255,209,1)'}]},options:{...base,plugins:{legend:{display:false}}}});
+}
+
+function updateCharts(s){
+  if(sevChart&&s.incidents?.by_severity){const sv=s.incidents.by_severity;sevChart.data.datasets[0].data=[sv.low||0,sv.medium||0,sv.high||0,sv.critical||0];sevChart.update('none')}
+  if(trendChart&&s.activity_trend){trendChart.data.labels=s.activity_trend.map(d=>d.date?.slice(5)||'');trendChart.data.datasets[0].data=s.activity_trend.map(d=>d.count);trendChart.update('none')}
+}
+
+function $(id){return document.getElementById(id)}
+function getToken(){return localStorage.getItem('token')||localStorage.getItem('nv_token')||''}
+async function apiFetch(url,method='GET',body=null){
+  try{
+    const opts={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()}};
+    if(body!==null)opts.body=JSON.stringify(body);
+    const r=await fetch(url,opts);
+    if(!r.ok){const txt=await r.text().catch(()=>r.statusText);return{error:`HTTP ${r.status}: ${txt}`}}
+    return await r.json();
+  }catch(e){return{error:e.message}}
+}
+function scoreColor(s){if(s>=0.85)return'#FF2D55';if(s>=0.70)return'#EF4444';if(s>=0.50)return'#F59E0B';if(s>=0.30)return'#0EA5E9';return'#10B981'}
+function levelName(s){if(s>=0.85)return'critical';if(s>=0.70)return'high';if(s>=0.50)return'medium';if(s>=0.30)return'low';return'safe'}
+function levelTitle(lvl){return{critical:'🔴 Critical Breach',high:'🟠 High Risk',medium:'🟡 Suspicious Activity',low:'🔵 Low Risk',safe:'✅ Session Secure'}[lvl]||lvl}
+function levelDesc(lvl,hacker,session){const loc=hacker.city?`${hacker.city}, ${hacker.country}`:session.ip_address||'unknown origin';if(lvl==='critical')return`Active attack from ${loc}. Session auto-terminated. Attacker blocked.`;if(lvl==='high')return`High-risk activity from ${loc}. Transfers blocked. Monitoring active.`;if(lvl==='medium')return`Elevated anomaly signals from ${loc}. All actions logged.`;return`Low anomaly signals from ${loc}. No immediate threat.`}
+function parseUA(ua){if(!ua)return'Unknown';if(ua.includes('Chrome'))return'Chrome / Desktop';if(ua.includes('Firefox'))return'Firefox / Desktop';if(ua.includes('python'))return'Script / Bot';return'Unknown Browser'}
+function fmtTime(ts){if(!ts)return'—';const d=new Date(ts);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' '+d.toLocaleDateString()}
+function fmtRelTime(ts){if(!ts)return'—';const diff=Date.now()-new Date(ts).getTime(),s=Math.floor(diff/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.floor(s/60)}m ago`;return`${Math.floor(s/3600)}h ago`}
+function setVal(id,val){const el=$(id);if(el)el.textContent=val}
+function flashVal(id,val){const el=$(id);if(!el)return;el.textContent=val;el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}
+function toast(msg,err=false,warn=false){const t=document.createElement('div');t.className='toast'+(err?' err':warn?' warn':'');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4000)}
+async function doLogout(){await TokenShield.api.logout();window.location.href='/'}
+$('analysis-overlay').addEventListener('click',e=>{if(e.target===$('analysis-overlay'))closeAnalysis()});
+$('confirm-overlay').addEventListener('click',e=>{if(e.target===$('confirm-overlay'))closeConfirm()});
+</script>
 </body>
 </html>

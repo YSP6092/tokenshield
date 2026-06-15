@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenShield — Network Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN SYSTEM — Phosphor Terminal / War Room aesthetic
+   ═══════════════════════════════════════════════════ */
+:root {
+  --bg:         #050A08;
+  --surface:    #0A1210;
+  --panel:      #0F1C18;
+  --raised:     #152820;
+  --border:     #1E3A30;
+  --border2:    #2A5040;
+
+  --green:      #00FF88;
+  --green-dim:  rgba(0,255,136,.12);
+  --green-glow: 0 0 20px rgba(0,255,136,.35);
+  --green-mid:  #00C866;
+  --green-dark: #009950;
+
+  --amber:      #FFB800;
+  --amber-dim:  rgba(255,184,0,.12);
+  --amber-glow: 0 0 20px rgba(255,184,0,.35);
+
+  --red:        #FF3B5C;
+  --red-dim:    rgba(255,59,92,.12);
+  --red-glow:   0 0 24px rgba(255,59,92,.5);
+
+  --cyan:       #00D4FF;
+  --cyan-dim:   rgba(0,212,255,.10);
+
+  --text:       #C8E8D8;
+  --text-dim:   #5A8870;
+  --text-faint: #2A5040;
+
+  --mono:  'JetBrains Mono', monospace;
+  --sans:  'Barlow Condensed', sans-serif;
+  --r:     4px;
+  --r-lg:  8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+
+body {
+  font-family: var(--sans);
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px);
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(rgba(0,255,136,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── TOPNAV ── */
+.topnav {
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 52px;
+  background: rgba(10,18,16,.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  color: var(--green); letter-spacing: 2px; text-transform: uppercase;
+}
+.nav-logo .pulse {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); box-shadow: var(--green-glow);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.nav-status { display: flex; align-items: center; gap: 20px; font-family: var(--mono); font-size: 11px; }
+.ns-item { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.ns-val { color: var(--text); font-weight: 600; }
+.ns-val.green { color: var(--green); }
+.ns-val.amber { color: var(--amber); }
+.ns-val.red   { color: var(--red);   }
+
+.nav-actions { display: flex; gap: 8px; }
+.nav-btn { padding: 5px 14px; border-radius: var(--r); font-family: var(--sans); font-weight: 600; font-size: 13px; cursor: pointer; border: 1px solid; transition: all .15s; letter-spacing: .5px; }
+.btn-ghost { background: transparent; border-color: var(--border2); color: var(--text-dim); }
+.btn-ghost:hover { border-color: var(--green); color: var(--green); }
+.btn-attack  { background: var(--amber-dim); border-color: rgba(255,184,0,.5); color: var(--amber); font-weight: 700; }
+.btn-attack:hover { background: rgba(255,184,0,.2); box-shadow: var(--amber-glow); }
+.btn-attack:disabled { opacity: .45; cursor: not-allowed; }
+.btn-mitigate { background: var(--red-dim); border-color: rgba(255,59,92,.5); color: var(--red); font-weight: 700; }
+.btn-mitigate:hover { background: rgba(255,59,92,.2); box-shadow: var(--red-glow); }
+.btn-mitigate:disabled { opacity: .45; cursor: not-allowed; }
+.btn-reset { background: var(--green-dim); border-color: rgba(0,255,136,.4); color: var(--green); font-weight: 700; }
+.btn-reset:hover { background: rgba(0,255,136,.2); box-shadow: var(--green-glow); }
+
+/* ── PHASE BANNER ── */
+.phase-banner { display: none; padding: 10px 24px; font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; text-align: center; animation: banner-flash 1.2s ease-in-out infinite; }
+.phase-banner.normal          { display:block; background: rgba(0,255,136,.06); color: var(--green-mid); border-bottom: 1px solid rgba(0,255,136,.15); animation: none; }
+.phase-banner.under_attack    { display:block; background: rgba(255,184,0,.08);  color: var(--amber);     border-bottom: 1px solid rgba(255,184,0,.3); }
+.phase-banner.post_mitigation { display:block; background: rgba(0,212,255,.06); color: var(--cyan); border-bottom: 1px solid rgba(0,212,255,.2); animation: none; }
+@keyframes banner-flash { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+/* ── STAT STRIP ── */
+.stat-strip { display: grid; grid-template-columns: repeat(6, 1fr); border-bottom: 1px solid var(--border); }
+.stat-cell { padding: 12px 18px; border-right: 1px solid var(--border); transition: background .2s; }
+.stat-cell:last-child { border-right: none; }
+.stat-cell:hover { background: rgba(0,255,136,.03); }
+.sc-val { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 3px; transition: color .5s; }
+.sc-val.green { color: var(--green); } .sc-val.amber { color: var(--amber); } .sc-val.red { color: var(--red); } .sc-val.cyan { color: var(--cyan); } .sc-val.white { color: var(--text); }
+.sc-lbl { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+
+/* ── MAIN LAYOUT: now 3 columns ── */
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr 380px;
+  min-height: calc(100vh - 52px - 42px - 48px);
+  position: relative; z-index: 1;
+}
+
+/* ── LEFT: TOPOLOGY ── */
+.topo-panel { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.panel-title { padding: 12px 16px 10px; font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+.pt-badge { background: var(--green-dim); border: 1px solid rgba(0,255,136,.25); border-radius: 2px; padding: 1px 7px; font-size: 10px; color: var(--green); }
+.pt-badge.warn  { background: var(--amber-dim); border-color: rgba(255,184,0,.25); color: var(--amber); }
+.pt-badge.alert { background: var(--red-dim); border-color: rgba(255,59,92,.3); color: var(--red); animation: pulse-dot 1s infinite; }
+.topo-canvas { flex: 1; position: relative; overflow: hidden; }
+.topo-svg { width: 100%; height: 100%; min-height: 360px; }
+.topo-link { stroke: rgba(0,255,136,.2); stroke-width: 1.5; transition: stroke .5s; }
+.topo-link.active  { stroke: rgba(0,255,136,.55); stroke-width: 2; }
+.topo-link.severed { stroke: rgba(255,59,92,.6); stroke-width: 2; stroke-dasharray: 5 3; }
+.topo-legend { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; }
+.tl-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-dim); }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.node-info { padding: 10px 16px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 10px; min-height: 72px; background: var(--panel); }
+.ni-title { color: var(--green); font-weight: 600; margin-bottom: 4px; }
+.ni-row { display: flex; justify-content: space-between; color: var(--text-dim); padding: 1px 0; }
+.ni-val { color: var(--text); }
+
+/* ── CENTRE: CHARTS + TABLE + FEED ── */
+.right-panel { background: var(--bg); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; border-right: 1px solid var(--border); }
+.right-panel::-webkit-scrollbar { width: 4px; }
+.right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chart-box { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px; position: relative; overflow: hidden; }
+.chart-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--green), transparent); }
+.chart-box.amber-accent::before { background: linear-gradient(90deg, var(--amber), transparent); }
+.chart-box.red-accent::before   { background: linear-gradient(90deg, var(--red), transparent); }
+.cb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cb-title { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+.cb-val { font-family: var(--mono); font-size: 18px; font-weight: 700; line-height: 1; transition: color .4s; }
+.cb-val.green { color: var(--green); } .cb-val.amber { color: var(--amber); } .cb-val.red { color: var(--red); }
+canvas { max-height: 130px; }
+
+.comparison-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.comparison-header { padding: 10px 16px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); display: flex; align-items: center; gap: 10px; }
+.comparison-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.comp-table { width: 100%; border-collapse: collapse; }
+.comp-table th { padding: 8px 14px; text-align: left; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); background: var(--surface); }
+.comp-table td { padding: 10px 14px; font-family: var(--mono); font-size: 12px; border-bottom: 1px solid rgba(30,58,48,.5); vertical-align: middle; }
+.comp-table tr:last-child td { border-bottom: none; }
+.phase-label { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 11px; }
+.phase-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.phase-dot.normal        { background: var(--green); box-shadow: var(--green-glow); }
+.phase-dot.under_attack  { background: var(--amber); box-shadow: var(--amber-glow); }
+.phase-dot.post_mitigation { background: var(--cyan); box-shadow: 0 0 10px rgba(0,212,255,.4); }
+.metric-val { font-weight: 700; font-size: 14px; }
+.metric-val.green { color: var(--green); } .metric-val.amber { color: var(--amber); } .metric-val.red { color: var(--red); } .metric-val.cyan { color: var(--cyan); } .metric-val.dim { color: var(--text-dim); font-size: 11px; }
+.delta-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; }
+.delta-up   { background: rgba(255,59,92,.15); color: var(--red); border: 1px solid rgba(255,59,92,.3); }
+.delta-down { background: rgba(0,255,136,.10); color: var(--green); border: 1px solid rgba(0,255,136,.2); }
+.delta-neutral { background: rgba(90,136,112,.15); color: var(--text-dim); border: 1px solid var(--border); }
+
+.feed-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+.feed-list { max-height: 180px; overflow-y: auto; }
+.feed-list::-webkit-scrollbar { width: 3px; }
+.feed-list::-webkit-scrollbar-thumb { background: var(--border2); }
+.feed-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 14px; border-bottom: 1px solid rgba(30,58,48,.4); font-size: 11px; animation: feed-in .3s ease; }
+@keyframes feed-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+.feed-item:last-child { border-bottom: none; }
+.fi-time { font-family: var(--mono); font-size: 10px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; padding-top: 1px; }
+.fi-text { font-family: var(--mono); flex: 1; }
+.fi-critical { color: var(--red); } .fi-high { color: #FF8566; } .fi-medium { color: var(--amber); } .fi-normal { color: var(--green-mid); }
+
+.controls-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cc-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); flex-shrink: 0; }
+.cc-btns { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+.cc-btn { padding: 7px 16px; border-radius: var(--r); font-family: var(--sans); font-size: 13px; font-weight: 700; letter-spacing: .5px; cursor: pointer; border: 1px solid; transition: all .15s; }
+.cc-phase { font-family: var(--mono); font-size: 11px; margin-left: auto; padding: 5px 10px; background: var(--green-dim); border: 1px solid rgba(0,255,136,.2); border-radius: var(--r); color: var(--green); }
+.cc-phase.amber { background: var(--amber-dim); border-color: rgba(255,184,0,.3); color: var(--amber); }
+.cc-phase.cyan  { background: var(--cyan-dim); border-color: rgba(0,212,255,.2); color: var(--cyan); }
+
+/* ══════════════════════════════════════════════════════
+   STEP 3.5 — MITIGATION TIMELINE PANEL (right column)
+   ══════════════════════════════════════════════════════ */
+.timeline-panel {
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Timeline header ── */
+.tl-header {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.tl-header-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.tl-title {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+  display: flex; align-items: center; gap: 8px;
+}
+.tl-sse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-faint);
+  transition: background .3s, box-shadow .3s;
+}
+.tl-sse-dot.live { background: var(--green); box-shadow: var(--green-glow); animation: pulse-dot 1.4s infinite; }
+.tl-sse-dot.err  { background: var(--red); }
+
+.tl-actions { display: flex; gap: 6px; }
+.tl-btn {
+  padding: 4px 10px; border-radius: var(--r);
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  letter-spacing: .5px; cursor: pointer; border: 1px solid;
+  transition: all .15s; text-transform: uppercase;
+}
+.tl-btn-demo {
+  background: var(--amber-dim); border-color: rgba(255,184,0,.4);
+  color: var(--amber);
+}
+.tl-btn-demo:hover { background: rgba(255,184,0,.2); }
+.tl-btn-demo:disabled { opacity: .4; cursor: not-allowed; }
+.tl-btn-clear {
+  background: transparent; border-color: var(--border2);
+  color: var(--text-dim);
+}
+.tl-btn-clear:hover { border-color: var(--border2); color: var(--text); }
+
+/* ── KPI strip ── */
+.tl-kpi { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.tl-kpi-item { background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 10px; }
+.tl-kpi-val { font-family: var(--mono); font-size: 18px; font-weight: 700; line-height: 1; }
+.tl-kpi-val.green { color: var(--green); }
+.tl-kpi-val.amber { color: var(--amber); }
+.tl-kpi-val.cyan  { color: var(--cyan);  }
+.tl-kpi-lbl { font-size: 9px; color: var(--text-dim); margin-top: 3px; letter-spacing: .5px; text-transform: uppercase; }
+
+/* ── Incident selector list ── */
+.tl-incidents {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  max-height: 120px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.tl-incidents::-webkit-scrollbar { width: 3px; }
+.tl-incidents::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.tl-inc-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(30,58,48,.4);
+  cursor: pointer; transition: background .15s;
+  font-family: var(--mono); font-size: 10px;
+}
+.tl-inc-item:last-child { border-bottom: none; }
+.tl-inc-item:hover { background: var(--raised); }
+.tl-inc-item.active { background: var(--raised); border-left: 2px solid var(--green); }
+
+.tl-inc-dots { display: flex; gap: 2px; margin-left: auto; }
+.tl-dot-step {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border2); transition: background .2s;
+}
+.tl-dot-step.ok      { background: var(--green); }
+.tl-dot-step.error   { background: var(--red);   }
+.tl-dot-step.skipped { background: var(--amber);  }
+
+/* ── Gantt chart area ── */
+.tl-gantt {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+.tl-gantt::-webkit-scrollbar { width: 3px; }
+.tl-gantt::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.tl-gantt-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 10px;
+  font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+  text-align: center;
+}
+.tl-gantt-empty .tl-idle-icon { font-size: 28px; opacity: .3; }
+
+.tl-scale {
+  display: flex; justify-content: space-between;
+  padding: 0 0 6px 154px;
+  font-family: var(--mono); font-size: 9px; color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.tl-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px;
+  opacity: 0; transform: translateX(-6px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.tl-row.visible { opacity: 1; transform: translateX(0); }
+
+.tl-row-label {
+  width: 146px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 7px;
+}
+.tl-step-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  flex-shrink: 0;
+  border: 1px solid var(--border2); background: var(--panel); color: var(--text-dim);
+  transition: all .3s;
+}
+.tl-step-num.ok    { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.tl-step-num.error { background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
+.tl-step-num.skipped { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+.tl-row-name { font-family: var(--mono); font-size: 10px; font-weight: 500; line-height: 1.2; }
+.tl-row-target { font-size: 9px; color: var(--text-faint); }
+
+.tl-track {
+  flex: 1; height: 22px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 3px; position: relative; overflow: hidden;
+}
+
+/* Nominal ghost bar */
+.tl-nominal {
+  position: absolute; top: 0; bottom: 0;
+  background: var(--border2); opacity: .4; border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Actual fill bar */
+.tl-actual {
+  position: absolute; top: 2px; bottom: 2px;
+  border-radius: 2px; min-width: 2px;
+  transition: width .5s cubic-bezier(.23,1,.32,1);
+}
+.tl-actual.ok    { background: linear-gradient(90deg, var(--green), rgba(0,255,136,.5)); }
+.tl-actual.error { background: linear-gradient(90deg, var(--red),   rgba(255,59,92,.5)); }
+.tl-actual.skipped { background: linear-gradient(90deg, var(--amber), rgba(255,184,0,.4)); }
+
+/* Pending shimmer */
+.tl-actual.pending {
+  background: linear-gradient(90deg, var(--border2) 0%, var(--border) 50%, var(--border2) 100%);
+  background-size: 200% 100%;
+  animation: tl-shimmer 1.2s linear infinite;
+  width: 30% !important;
+}
+@keyframes tl-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.tl-ms {
+  width: 48px; flex-shrink: 0;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  text-align: right; color: var(--text-dim);
+  transition: color .3s;
+}
+.tl-ms.ok    { color: var(--green); }
+.tl-ms.error { color: var(--red);   }
+.tl-ms.skipped { color: var(--amber); }
+
+/* ── Detail log strip ── */
+.tl-detail-log {
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  padding: 0;
+  flex-shrink: 0;
+}
+.tl-log-header {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-faint);
+}
+.tl-log-list {
+  max-height: 100px; overflow-y: auto;
+  padding: 4px 0;
+}
+.tl-log-list::-webkit-scrollbar { width: 3px; }
+.tl-log-list::-webkit-scrollbar-thumb { background: var(--border2); }
+.tl-log-entry {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 3px 14px;
+  font-family: var(--mono); font-size: 9px;
+  border-bottom: 1px solid rgba(30,58,48,.2);
+  animation: feed-in .2s ease;
+}
+.tl-log-entry:last-child { border-bottom: none; }
+.tl-log-ts { color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+.tl-log-step { color: var(--green-mid); flex-shrink: 0; width: 16px; text-align: right; }
+.tl-log-detail { color: var(--text-dim); flex: 1; }
+.tl-log-entry.error .tl-log-detail { color: var(--red); }
+.tl-log-entry.skipped .tl-log-detail { color: var(--amber); }
+
+/* ── Toast ── */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 16px; border-radius: var(--r-lg); background: var(--panel); border-left: 3px solid var(--green); font-family: var(--mono); font-size: 11px; color: var(--text); box-shadow: 0 4px 20px rgba(0,0,0,.4); animation: toast-in .3s ease; min-width: 260px; }
+.toast.warn { border-left-color: var(--amber); }
+.toast.err  { border-left-color: var(--red);   }
+@keyframes toast-in { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 280px 1fr; }
+  .timeline-panel { display: none; }  /* show on larger screens only */
+}
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .topo-panel { min-height: 300px; }
+  .stat-strip { grid-template-columns: repeat(3,1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOPNAV ── -->
+<nav class="topnav">
+  <div class="nav-logo">
+    <div class="pulse"></div>
+    TokenShield · Network Simulation
+  </div>
+  <div class="nav-status">
+    <div class="ns-item">GNS3 <span class="ns-val" id="ns-gns3">—</span></div>
+    <div class="ns-item">Monitor <span class="ns-val green" id="ns-monitor">LIVE</span></div>
+    <div class="ns-item">Refresh <span class="ns-val" id="ns-tick">0</span>s</div>
+    <div class="ns-item">Phase <span class="ns-val" id="ns-phase">—</span></div>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-btn btn-ghost"    onclick="goAdmin()">Admin</button>
+    <button class="nav-btn btn-ghost"    onclick="goSecurity()">Security</button>
+    <button class="nav-btn btn-attack"   id="btn-attack"   onclick="triggerAttack()">⚡ Run Attack</button>
+    <button class="nav-btn btn-mitigate" id="btn-mitigate" onclick="triggerMitigate()" disabled>🛡 Mitigate</button>
+    <button class="nav-btn btn-reset"    onclick="triggerReset()">↺ Reset</button>
+  </div>
+</nav>
+
+<!-- ── PHASE BANNER ── -->
+<div class="phase-banner normal" id="phase-banner">● SYSTEM NOMINAL — All nodes operational</div>
+
+<!-- ── STAT STRIP ── -->
+<div class="stat-strip">
+  <div class="stat-cell"><div class="sc-val green" id="st-cpu">—</div><div class="sc-lbl">CPU %</div></div>
+  <div class="stat-cell"><div class="sc-val cyan"  id="st-ram">—</div><div class="sc-lbl">RAM %</div></div>
+  <div class="stat-cell"><div class="sc-val white" id="st-net">—</div><div class="sc-lbl">Net KB/s</div></div>
+  <div class="stat-cell"><div class="sc-val white" id="st-conn">—</div><div class="sc-lbl">Connections</div></div>
+  <div class="stat-cell"><div class="sc-val amber" id="st-sessions">—</div><div class="sc-lbl">Active Sessions</div></div>
+  <div class="stat-cell"><div class="sc-val red"   id="st-threats">—</div><div class="sc-lbl">Threats 24h</div></div>
+</div>
+
+<!-- ── MAIN LAYOUT ── -->
+<div class="layout">
+
+  <!-- ── LEFT: Network Topology ── -->
+  <div class="topo-panel">
+    <div class="panel-title">
+      GNS3 Network Topology
+      <span class="pt-badge" id="topo-badge">LIVE</span>
+    </div>
+    <div class="topo-canvas">
+      <svg class="topo-svg" id="topo-svg" viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow-green"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="glow-amber"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="glow-red"  ><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <line id="link-nat-router"     x1="150" y1="38"  x2="150" y2="76"  class="topo-link active"/>
+        <line id="link-router-switch"  x1="150" y1="92"  x2="150" y2="138" class="topo-link active"/>
+        <line id="link-switch-server"  x1="150" y1="152" x2="70"  y2="208" class="topo-link active"/>
+        <line id="link-switch-user1"   x1="150" y1="152" x2="110" y2="254" class="topo-link active"/>
+        <line id="link-switch-user2"   x1="150" y1="152" x2="150" y2="254" class="topo-link active"/>
+        <line id="link-switch-user3"   x1="150" y1="152" x2="190" y2="254" class="topo-link active"/>
+        <line id="link-switch-attacker" x1="150" y1="152" x2="240" y2="208" class="topo-link active"/>
+        <g id="traffic-particles"></g>
+        <g id="node-nat" class="topo-node" style="cursor:pointer" onclick="selectNode('nat','NAT Cloud','External Network','172.20.0.1','cloud','started')">
+          <circle cx="150" cy="26" r="16" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.5)" stroke-width="1.5" filter="url(#glow-green)"/>
+          <text x="150" y="23" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#00D4FF">☁</text>
+          <text x="150" y="31" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(0,212,255,.8)">NAT</text>
+        </g>
+        <g id="node-router" class="topo-node" style="cursor:pointer" onclick="selectNode('router','Virtual Router','Layer 3 Routing','172.20.0.254','router','started')">
+          <rect x="132" y="77" width="36" height="18" rx="3" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <text x="150" y="90" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="var(--green)">ROUTER</text>
+        </g>
+        <g id="node-switch" class="topo-node" style="cursor:pointer" onclick="selectNode('switch','Virtual Switch','Layer 2','172.20.0.0/24','switch','started')">
+          <rect x="120" y="139" width="60" height="18" rx="3" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+          <text x="150" y="152" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="var(--green)">SWITCH</text>
+        </g>
+        <g id="node-server" class="topo-node" style="cursor:pointer" onclick="selectNode('server','Flask Server','NeoVault + TokenShield','172.20.0.2','docker','started')">
+          <circle cx="70" cy="220" r="18" fill="rgba(0,255,136,.15)" stroke="rgba(0,255,136,.6)" stroke-width="2" filter="url(#glow-green)"/>
+          <text x="70" y="217" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="var(--green)">SRV</text>
+          <text x="70" y="226" text-anchor="middle" font-family="JetBrains Mono" font-size="5.5" fill="rgba(0,255,136,.7)">.0.2</text>
+          <circle cx="70" cy="220" r="18" fill="none" stroke="rgba(0,255,136,.2)" stroke-width="1"><animate attributeName="r" from="18" to="28" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" from=".5" to="0" dur="2s" repeatCount="indefinite"/></circle>
+        </g>
+        <g id="node-user1" onclick="selectNode('user1','User Alice','Normal Traffic','172.20.0.10','docker','started')" style="cursor:pointer">
+          <circle cx="110" cy="266" r="12" fill="rgba(0,200,102,.1)" stroke="rgba(0,200,102,.45)" stroke-width="1.5"/>
+          <text x="110" y="263" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="var(--green-mid)">U1</text>
+          <text x="110" y="271" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="rgba(0,200,102,.6)">.10</text>
+        </g>
+        <g id="node-user2" onclick="selectNode('user2','User Bob','Normal Traffic','172.20.0.11','docker','started')" style="cursor:pointer">
+          <circle cx="150" cy="266" r="12" fill="rgba(0,200,102,.1)" stroke="rgba(0,200,102,.45)" stroke-width="1.5"/>
+          <text x="150" y="263" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="var(--green-mid)">U2</text>
+          <text x="150" y="271" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="rgba(0,200,102,.6)">.11</text>
+        </g>
+        <g id="node-user3" onclick="selectNode('user3','User Carol','Normal Traffic','172.20.0.12','docker','started')" style="cursor:pointer">
+          <circle cx="190" cy="266" r="12" fill="rgba(0,200,102,.1)" stroke="rgba(0,200,102,.45)" stroke-width="1.5"/>
+          <text x="190" y="263" text-anchor="middle" font-family="JetBrains Mono" font-size="6.5" fill="var(--green-mid)">U3</text>
+          <text x="190" y="271" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="rgba(0,200,102,.6)">.12</text>
+        </g>
+        <g id="node-attacker" onclick="selectNode('attacker','ZAP Attacker','THREAT ACTOR','172.20.0.99','docker','started')" style="cursor:pointer">
+          <circle id="attacker-circle" cx="240" cy="220" r="18" fill="rgba(255,59,92,.12)" stroke="rgba(255,59,92,.6)" stroke-width="2" filter="url(#glow-amber)"/>
+          <text x="240" y="217" text-anchor="middle" font-family="JetBrains Mono" font-size="7" font-weight="700" fill="var(--red)">ATK</text>
+          <text x="240" y="226" text-anchor="middle" font-family="JetBrains Mono" font-size="5.5" fill="rgba(255,59,92,.7)">.99</text>
+          <circle cx="240" cy="220" r="18" fill="none" stroke="rgba(255,59,92,.25)" stroke-width="1" id="attacker-pulse"><animate attributeName="r" from="18" to="30" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" from=".7" to="0" dur="1.5s" repeatCount="indefinite"/></circle>
+        </g>
+        <g id="isolated-overlay" style="display:none">
+          <line x1="222" y1="202" x2="258" y2="238" stroke="var(--red)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="258" y1="202" x2="222" y2="238" stroke="var(--red)" stroke-width="3" stroke-linecap="round"/>
+          <text x="240" y="258" text-anchor="middle" font-family="JetBrains Mono" font-size="7" font-weight="700" fill="var(--red)">ISOLATED</text>
+        </g>
+        <text x="70"  y="244" text-anchor="middle" font-family="JetBrains Mono" font-size="5.5" fill="var(--text-faint)">Flask + Shield</text>
+        <text x="240" y="244" text-anchor="middle" font-family="JetBrains Mono" font-size="5.5" fill="rgba(255,59,92,.5)">Threat Actor</text>
+      </svg>
+    </div>
+    <div class="topo-legend">
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green)"></div>Server</div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--green-mid)"></div>Users</div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--red)"></div>Attacker</div>
+      <div class="tl-item" id="gns3-mode-label" style="margin-left:auto;font-size:9px;color:var(--text-faint)">STUB MODE</div>
+    </div>
+    <div class="node-info" id="node-info">
+      <div class="ni-title">Click a node to inspect</div>
+      <div class="ni-row"><span>Hover the topology to explore</span></div>
+    </div>
+  </div>
+
+  <!-- ── CENTRE: Charts + Table + Feed ── -->
+  <div class="right-panel">
+    <div class="controls-card">
+      <div class="cc-label">Phase Control</div>
+      <div class="cc-btns">
+        <button class="cc-btn btn-attack"   onclick="triggerAttack()">⚡ Start Attack</button>
+        <button class="cc-btn btn-mitigate" onclick="triggerMitigate()">🛡 Mitigate</button>
+        <button class="cc-btn btn-reset"    onclick="triggerReset()">↺ Reset</button>
+      </div>
+      <div class="cc-phase" id="cc-phase-display">● NORMAL</div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-box">
+        <div class="cb-header"><span class="cb-title">CPU Usage</span><span class="cb-val green" id="cv-cpu">0%</span></div>
+        <canvas id="chart-cpu"></canvas>
+      </div>
+      <div class="chart-box amber-accent">
+        <div class="cb-header"><span class="cb-title">RAM Usage</span><span class="cb-val amber" id="cv-ram">0%</span></div>
+        <canvas id="chart-ram"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="cb-header"><span class="cb-title">Network KB/s</span><span class="cb-val green" id="cv-net">0</span></div>
+        <canvas id="chart-net"></canvas>
+      </div>
+      <div class="chart-box red-accent">
+        <div class="cb-header"><span class="cb-title">Connections</span><span class="cb-val red" id="cv-conn">0</span></div>
+        <canvas id="chart-conn"></canvas>
+      </div>
+    </div>
+    <div class="comparison-card">
+      <div class="comparison-header">Before · During · After Comparison</div>
+      <table class="comp-table">
+        <thead><tr><th>Phase</th><th>Avg CPU</th><th>Avg RAM</th><th>Net KB/s</th><th>Samples</th><th>CPU Δ</th></tr></thead>
+        <tbody id="comp-tbody">
+          <tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-faint);font-family:var(--mono);font-size:10px">Run an attack to populate phase data</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="feed-card">
+      <div class="panel-title">Live Event Feed <span class="pt-badge" id="feed-count">0</span></div>
+      <div class="feed-list" id="feed-list">
+        <div class="feed-item"><span class="fi-time">--:--:--</span><span class="fi-text fi-normal">Waiting for simulation events…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       STEP 3.5 — RIGHT COLUMN: MITIGATION TIMELINE PANEL
+       ══════════════════════════════════════════════════════ -->
+  <div class="timeline-panel">
+
+    <!-- Header -->
+    <div class="tl-header">
+      <div class="tl-header-top">
+        <div class="tl-title">
+          <div class="tl-sse-dot" id="sse-dot"></div>
+          Mitigation Timeline
+        </div>
+        <div class="tl-actions">
+          <button class="tl-btn tl-btn-demo" id="tl-demo-btn" onclick="triggerDemo()">⚡ Demo</button>
+          <button class="tl-btn tl-btn-clear" onclick="clearTimeline()">Clear</button>
+        </div>
+      </div>
+      <div class="tl-kpi">
+        <div class="tl-kpi-item">
+          <div class="tl-kpi-val green" id="tl-kpi-incidents">0</div>
+          <div class="tl-kpi-lbl">Incidents</div>
+        </div>
+        <div class="tl-kpi-item">
+          <div class="tl-kpi-val amber" id="tl-kpi-avg-ms">—</div>
+          <div class="tl-kpi-lbl">Avg ms</div>
+        </div>
+        <div class="tl-kpi-item">
+          <div class="tl-kpi-val cyan" id="tl-kpi-subs">0</div>
+          <div class="tl-kpi-lbl">Subscribers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Incident list (click to view steps) -->
+    <div class="tl-incidents" id="tl-incidents">
+      <div class="tl-inc-item" style="justify-content:center;color:var(--text-faint);cursor:default">
+        No incidents yet — run a demo or trigger an attack
+      </div>
+    </div>
+
+    <!-- Gantt chart area -->
+    <div class="tl-gantt" id="tl-gantt">
+      <div class="tl-gantt-empty" id="tl-gantt-empty">
+        <div class="tl-idle-icon">🛡</div>
+        <div>Select an incident above<br>or run a demo to see<br>the mitigation timeline</div>
+      </div>
+      <!-- Populated by renderGantt() -->
+    </div>
+
+    <!-- Detail log -->
+    <div class="tl-detail-log">
+      <div class="tl-log-header">Step Detail Log</div>
+      <div class="tl-log-list" id="tl-log-list">
+        <div class="tl-log-entry"><span class="tl-log-ts">--:--:--</span><span class="tl-log-step">—</span><span class="tl-log-detail">Awaiting mitigation events…</span></div>
+      </div>
+    </div>
+
+  </div>
+  <!-- end timeline panel -->
+
+</div><!-- end .layout -->
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════════════════ -->
+<script>
+'use strict';
+ 
+const API = '';
+let TOKEN = '';
+let tick  = 0;
+let currentPhase = 'normal';
+let feedItems = [];
+let sessionExpired = false;
+ 
+// ── Auth init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  TOKEN = localStorage.getItem('token') ||
+          localStorage.getItem('nv_token') ||
+          sessionStorage.getItem('token') || '';
+ 
+  if (!TOKEN) {
+    showSessionBanner('No session found. Please log in first.');
+    return;
+  }
+ 
+  initCharts();
+  initSSE();
+  poll();
+  setInterval(poll, 2000);
+  setInterval(animateTraffic, 800);
+  pollTimelineStats();
+  setInterval(pollTimelineStats, 8000);
+});
+ 
+// ── Session expired banner ───────────────────────────────────────────────────
+function showSessionBanner(msg) {
+  sessionExpired = true;
+  // Create banner if it doesn't exist
+  let banner = document.getElementById('session-expired-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'session-expired-banner';
+    banner.style.cssText = `
+      position:fixed;top:52px;left:0;right:0;z-index:500;
+      background:rgba(255,184,0,.15);border-bottom:2px solid rgba(255,184,0,.8);
+      padding:12px 24px;display:flex;align-items:center;justify-content:space-between;
+      font-family:var(--mono);font-size:12px;color:var(--amber);
+    `;
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = `
+    <span>⚠ ${msg}</span>
+    <button onclick="window.location.href='/login'" style="
+      padding:5px 14px;background:rgba(255,184,0,.2);border:1px solid rgba(255,184,0,.5);
+      border-radius:4px;color:var(--amber);font-family:var(--mono);font-size:11px;
+      cursor:pointer;font-weight:700;
+    ">Re-Login →</button>
+  `;
+}
+ 
+function hideSessionBanner() {
+  const b = document.getElementById('session-expired-banner');
+  if (b) b.remove();
+  sessionExpired = false;
+}
+ 
+// ── apiFetch — graceful 401 handling ────────────────────────────────────────
+async function apiFetch(path, method = 'GET', body = null, options = {}) {
+  const opts = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(API + path, opts);
+ 
+    if (r.status === 401) {
+      // Don't redirect — show inline banner so user can re-login
+      // but simulation page stays visible
+      if (!sessionExpired) {
+        showSessionBanner('Session expired — re-login to restore full functionality.');
+      }
+      // Return null so caller handles gracefully
+      return null;
+    }
+ 
+    if (!r.ok) {
+      const txt = await r.text().catch(() => r.statusText);
+      // Only log non-404 errors (404s are expected for some optional endpoints)
+      if (r.status !== 404) {
+        console.error(`[TokenShield] ${method} ${path} → HTTP ${r.status}:`, txt);
+      }
+      return null;
+    }
+ 
+    // Got a good response — clear expired banner if it was showing
+    if (sessionExpired) hideSessionBanner();
+ 
+    return r.json();
+  } catch(e) {
+    console.error('[TokenShield] fetch error on', path, e);
+    return null;
+  }
+}
+ 
+// ── Poll loop ─────────────────────────────────────────────────────────────────
+async function poll() {
+  tick++;
+  setText('ns-tick', tick);
+ 
+  // These 3 are core simulation endpoints — always needed
+  const [status, history, comparison] = await Promise.all([
+    apiFetch('/api/simulation/status'),
+    apiFetch('/api/simulation/history?n=60'),
+    apiFetch('/api/simulation/comparison'),
+  ]);
+ 
+  if (status?.success)     updatePhase(status.status);
+  if (history?.success)    updateCharts(history.snapshots);
+  if (comparison?.success) updateComparison(comparison.comparison);
+ 
+  // Admin endpoints — optional, simulation works without them
+  if (!sessionExpired) {
+    const adminStats = await apiFetch('/api/admin/stats');
+    if (adminStats?.success) updateAdminStats(adminStats.stats);
+ 
+    if (tick % 10 === 1) {
+      const topo = await apiFetch('/api/simulation/topology');
+      if (topo?.success) updateTopologyBadge(topo.topology);
+    }
+ 
+    if (tick % 5 === 0) {
+      const feed = await apiFetch('/api/admin/incidents?days=1&limit=20');
+      if (feed?.success) updateFeed(feed.incidents || []);
+    }
+  }
+}
+ 
+// ── Phase ─────────────────────────────────────────────────────────────────────
+const PHASE_LABELS = {
+  normal:          '● SYSTEM NOMINAL — All nodes operational',
+  under_attack:    '⚠ ATTACK IN PROGRESS — Anomaly detection active',
+  post_mitigation: '✓ THREAT MITIGATED — Attacker node isolated',
+};
+ 
+function updatePhase(status) {
+  const phase = status.phase || 'normal';
+  if (phase === currentPhase) return;
+  currentPhase = phase;
+  const banner = document.getElementById('phase-banner');
+  banner.className = `phase-banner ${phase}`;
+  banner.textContent = PHASE_LABELS[phase] || phase;
+  const nsPhase = document.getElementById('ns-phase');
+  nsPhase.textContent = phase.replace('_', ' ').toUpperCase();
+  nsPhase.className = 'ns-val ' + (phase === 'normal' ? 'green' : phase === 'under_attack' ? 'amber' : 'cyan');
+  const ccPhase = document.getElementById('cc-phase-display');
+  ccPhase.textContent = '● ' + phase.replace(/_/g, ' ').toUpperCase();
+  ccPhase.className = 'cc-phase ' + (phase === 'under_attack' ? 'amber' : phase === 'post_mitigation' ? 'cyan' : '');
+  const iso = document.getElementById('isolated-overlay');
+  const atk = document.getElementById('attacker-circle');
+  if (phase === 'post_mitigation') {
+    iso.style.display = 'block';
+    atk.setAttribute('fill', 'rgba(255,59,92,.05)');
+    atk.setAttribute('stroke', 'rgba(255,59,92,.25)');
+    document.getElementById('link-switch-attacker').className = 'topo-link severed';
+    document.getElementById('attacker-pulse').style.display = 'none';
+  } else {
+    iso.style.display = 'none';
+    atk.setAttribute('fill', 'rgba(255,59,92,.12)');
+    atk.setAttribute('stroke', 'rgba(255,59,92,.6)');
+    document.getElementById('link-switch-attacker').className = 'topo-link active';
+    document.getElementById('attacker-pulse').style.display = '';
+  }
+  document.getElementById('btn-mitigate').disabled = (phase !== 'under_attack');
+  document.getElementById('btn-attack').disabled   = (phase === 'under_attack');
+}
+ 
+function updateTopologyBadge(topo) {
+  const badge = document.getElementById('topo-badge');
+  const label = document.getElementById('gns3-mode-label');
+  if (topo.connected) {
+    badge.textContent = 'GNS3 LIVE'; badge.className = 'pt-badge';
+    label.textContent = 'GNS3 CONNECTED';
+    setText('ns-gns3', 'ONLINE');
+    document.getElementById('ns-gns3').className = 'ns-val green';
+  } else {
+    badge.textContent = 'STUB'; badge.className = 'pt-badge';
+    label.textContent = 'STUB MODE';
+    setText('ns-gns3', 'OFFLINE');
+    document.getElementById('ns-gns3').className = 'ns-val';
+  }
+}
+ 
+function updateAdminStats(stats) {
+  if (!stats) return;
+  setText('st-sessions', stats.sessions?.active ?? '—');
+  setText('st-threats',  stats.incidents?.recent_24h ?? '—');
+ 
+  // Update avg anomaly in stat strip if field exists
+  if (stats.avg_anomaly_score !== undefined) {
+    const pct = Math.round((stats.avg_anomaly_score || 0) * 100);
+    // Update any anomaly displays on simulation page
+    const el = document.getElementById('st-avg-anomaly');
+    if (el) el.textContent = pct + '%';
+  }
+}
+ 
+// ── Charts ────────────────────────────────────────────────────────────────────
+let charts = {};
+const chartOpts = (color, unit = '') => ({
+  responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+  plugins: { legend: { display: false }, annotation: { annotations: {} } },
+  scales: {
+    x: { ticks: { color: '#2A5040', font: { size: 9, family: 'JetBrains Mono' }, maxTicksLimit: 6 }, grid: { color: 'rgba(30,58,48,.4)' } },
+    y: { ticks: { color: '#5A8870', font: { size: 9, family: 'JetBrains Mono' }, callback: v => v + unit }, grid: { color: 'rgba(30,58,48,.3)' }, beginAtZero: true }
+  }
+});
+function makeDataset(color) {
+  return { data: [], borderColor: color, borderWidth: 2, backgroundColor: color.replace(')', ', 0.08)').replace('rgb', 'rgba'), fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 3 };
+}
+function initCharts() {
+  charts.cpu  = new Chart(document.getElementById('chart-cpu').getContext('2d'),  { type: 'line', data: { labels: [], datasets: [makeDataset('rgb(0,255,136)')] }, options: chartOpts('rgb(0,255,136)', '%') });
+  charts.ram  = new Chart(document.getElementById('chart-ram').getContext('2d'),  { type: 'line', data: { labels: [], datasets: [makeDataset('rgb(255,184,0)')] }, options: chartOpts('rgb(255,184,0)', '%') });
+  charts.net  = new Chart(document.getElementById('chart-net').getContext('2d'),  { type: 'line', data: { labels: [], datasets: [makeDataset('rgb(0,255,136)')] }, options: chartOpts('rgb(0,255,136)', '') });
+  charts.conn = new Chart(document.getElementById('chart-conn').getContext('2d'), { type: 'line', data: { labels: [], datasets: [makeDataset('rgb(255,59,92)')] }, options: chartOpts('rgb(255,59,92)', '') });
+}
+function updateCharts(snapshots) {
+  if (!snapshots?.length) return;
+  const labels = snapshots.map(s => s.timestamp.slice(11,19));
+  const annotations = {};
+  snapshots.forEach((s,i) => {
+    if (i > 0 && s.phase !== snapshots[i-1].phase) {
+      annotations['phase_'+i] = { type:'line', xMin:i, xMax:i, borderColor: s.phase==='under_attack'?'rgba(255,184,0,.7)':'rgba(0,212,255,.6)', borderWidth:2, borderDash:[4,3], label:{ display:true, content:s.phase==='under_attack'?'ATTACK':'MITIGATED', color:s.phase==='under_attack'?'#FFB800':'#00D4FF', font:{size:9,family:'JetBrains Mono',weight:'700'}, backgroundColor:'rgba(10,18,16,.9)', position:'start' } };
+    }
+  });
+  ['cpu','ram','net','conn'].forEach(key => {
+    const c = charts[key];
+    c.data.labels = labels;
+    c.data.datasets[0].data = snapshots.map(s => ({cpu:s.cpu_percent,ram:s.ram_percent,net:s.net_recv_kb,conn:s.connections}[key]));
+    c.options.plugins.annotation.annotations = annotations;
+    c.update('none');
+  });
+  const latest = snapshots[snapshots.length-1];
+  setText('cv-cpu',  latest.cpu_percent.toFixed(1)+'%');
+  setText('cv-ram',  latest.ram_percent.toFixed(1)+'%');
+  setText('cv-net',  latest.net_recv_kb.toFixed(1));
+  setText('cv-conn', latest.connections);
+  setText('st-cpu',  latest.cpu_percent.toFixed(1)+'%');
+  setText('st-ram',  latest.ram_percent.toFixed(1)+'%');
+  setText('st-net',  (latest.net_sent_kb+latest.net_recv_kb).toFixed(1));
+  setText('st-conn', latest.connections);
+  const cpuEl = document.getElementById('cv-cpu');
+  const cpuVal = latest.cpu_percent;
+  cpuEl.className = cpuVal>70?'cb-val red':cpuVal>40?'cb-val amber':'cb-val green';
+  document.getElementById('st-cpu').className = 'sc-val '+(cpuVal>70?'red':cpuVal>40?'amber':'green');
+}
+ 
+const PHASE_META = {
+  normal:          { label:'Before (Normal)',   dot:'normal',         color:'green' },
+  under_attack:    { label:'During (Attack)',    dot:'under_attack',   color:'amber' },
+  post_mitigation: { label:'After (Mitigated)', dot:'post_mitigation',color:'cyan'  },
+};
+function updateComparison(data) {
+  const tbody = document.getElementById('comp-tbody');
+  const rows  = ['normal','under_attack','post_mitigation'].filter(p => data[p]);
+  if (!rows.length) return;
+  const normalCpu = data.normal?.cpu || 0;
+  tbody.innerHTML = rows.map(phase => {
+    const d = data[phase]; const meta = PHASE_META[phase];
+    const delta = phase==='normal'?null:(d.cpu-normalCpu);
+    let dh = '<span class="delta-badge delta-neutral">—</span>';
+    if (delta!==null) { const s=delta>0?'+':''; dh=delta>2?`<span class="delta-badge delta-up">${s}${delta.toFixed(1)}%</span>`:delta<-2?`<span class="delta-badge delta-down">${s}${delta.toFixed(1)}%</span>`:`<span class="delta-badge delta-neutral">~0%</span>`; }
+    return `<tr><td><span class="phase-label"><span class="phase-dot ${meta.dot}"></span>${meta.label}</span></td><td><span class="metric-val ${meta.color}">${d.cpu.toFixed(1)}%</span></td><td><span class="metric-val ${meta.color}">${d.ram.toFixed(1)}%</span></td><td><span class="metric-val ${meta.color}">${d.net_kb.toFixed(1)}</span></td><td><span class="metric-val dim">${d.sample_count}s</span></td><td>${dh}</td></tr>`;
+  }).join('');
+}
+function updateFeed(incidents) {
+  const newIds = new Set(incidents.map(i=>i.id));
+  const existIds = new Set(feedItems.map(i=>i.id));
+  const added = incidents.filter(i=>!existIds.has(i.id));
+  if (!added.length) return;
+  feedItems = [...added,...feedItems].slice(0,40);
+  setText('feed-count', feedItems.length);
+  document.getElementById('feed-list').innerHTML = feedItems.map(inc => {
+    const sev=inc.severity||'normal'; const t=inc.timestamp?inc.timestamp.slice(11,19):'--:--:--';
+    const type=(inc.incident_type||'').replace(/_/g,' ').toUpperCase();
+    const cls=sev==='critical'?'fi-critical':sev==='high'?'fi-high':sev==='medium'?'fi-medium':'fi-normal';
+    return `<div class="feed-item"><span class="fi-time">${t}</span><span class="fi-text ${cls}">[${sev.toUpperCase()}] ${type} · ${inc.ip_address||'?'} · ${Math.round((inc.anomaly_score||0)*100)}%</span></div>`;
+  }).join('');
+}
+ 
+// ── Timeline (SSE) ────────────────────────────────────────────────────────────
+let tlIncidents  = {};
+let tlSelected   = null;
+let sseConn      = null;
+let demoRunning  = false;
+ 
+const MAX_TIMELINE_MS = 120;
+ 
+function initSSE() {
+  const dot = document.getElementById('sse-dot');
+  if (!dot) return;
+  try {
+    sseConn = new EventSource('/api/security/mitigation/live');
+    sseConn.onopen = () => { dot.className = 'tl-sse-dot live'; };
+    sseConn.onmessage = (e) => {
+      try { ingestStep(JSON.parse(e.data)); } catch(err) {}
+    };
+    sseConn.onerror = () => {
+      dot.className = 'tl-sse-dot err';
+      setTimeout(() => {
+        if (sseConn.readyState === EventSource.OPEN) dot.className = 'tl-sse-dot live';
+      }, 3000);
+    };
+  } catch(err) { if (dot) dot.className = 'tl-sse-dot err'; }
+}
+ 
+function ingestStep(event) {
+  const id = event.incident_id;
+  if (!tlIncidents[id]) {
+    tlIncidents[id] = { incident_id:id, attack_type:event.attack_type||'attack', ip:event.ip||'—', steps:[], first_ts:event.ts };
+  }
+  const existing = tlIncidents[id].steps.findIndex(s => s.step === event.step);
+  if (existing >= 0) tlIncidents[id].steps[existing] = event;
+  else               tlIncidents[id].steps.push(event);
+  if (!tlSelected || tlSelected === id) { tlSelected = id; renderGantt(id); }
+  appendLogEntry(event);
+  renderIncidentList();
+}
+ 
+function renderIncidentList() {
+  const container = document.getElementById('tl-incidents');
+  if (!container) return;
+  const ids = Object.keys(tlIncidents).reverse().slice(0, 15);
+  if (!ids.length) {
+    container.innerHTML = '<div class="tl-inc-item" style="justify-content:center;color:var(--text-faint);cursor:default">No incidents yet</div>';
+    return;
+  }
+  container.innerHTML = ids.map(id => {
+    const inc=tlIncidents[id]; const steps=inc.steps;
+    const okCnt=steps.filter(s=>s.status==='ok').length;
+    const ts=inc.first_ts?inc.first_ts.slice(11,19):'--';
+    const type=(inc.attack_type||'attack').replace(/_/g,' ');
+    const active=id===tlSelected?' active':'';
+    const dots=Array.from({length:8},(_,i)=>{ const s=steps.find(s=>s.step===i+1); const cls=s?s.status:''; return `<div class="tl-dot-step ${cls}"></div>`; }).join('');
+    return `<div class="tl-inc-item${active}" onclick="selectIncident('${id}')"><span style="color:var(--text-dim)">${ts}</span><span style="color:var(--text);font-weight:600;flex:1;text-transform:capitalize">${type}</span><span style="color:var(--green-mid)">${okCnt}/8</span><div class="tl-inc-dots">${dots}</div></div>`;
+  }).join('');
+}
+ 
+function selectIncident(id) { tlSelected=id; renderGantt(id); renderIncidentList(); }
+ 
+function renderGantt(id) {
+  const gantt=document.getElementById('tl-gantt');
+  if (!gantt) return;
+  const empty=document.getElementById('tl-gantt-empty');
+  const inc=tlIncidents[id];
+  if (!inc) { if(empty)empty.style.display='flex'; return; }
+  if (empty) empty.style.display='none';
+  const NOMINAL_MS=[0,12,28,35,45,60,80,100];
+  const STEP_NAMES=['Token Revocation','IP → Redis','IP → Nginx','FP Ban','Account Lock','Coordinated?','Email Alert','SSE Push'];
+  const STEP_TARGETS=['Redis','Redis','Nginx','Redis','Database','Database','SMTP','WebSocket'];
+  const maxMs=Math.max(MAX_TIMELINE_MS,...inc.steps.map(s=>s.actual_ms||0));
+  const ticks=[0,Math.round(maxMs*.25),Math.round(maxMs*.5),Math.round(maxMs*.75),Math.round(maxMs)];
+  let html=`<div class="tl-scale">${ticks.map(t=>`<span>${t}ms</span>`).join('')}</div>`;
+  for(let i=0;i<8;i++){
+    const stepNum=i+1; const stepData=inc.steps.find(s=>s.step===stepNum);
+    const nominal=NOMINAL_MS[i]; const actualMs=stepData?stepData.actual_ms:0;
+    const nomPct=(nominal/maxMs*100).toFixed(1); const actualPct=stepData?(actualMs/maxMs*100).toFixed(1):0;
+    const numClass=stepData?stepData.status:''; const msClass=stepData?stepData.status:'';
+    const msText=stepData?`${actualMs.toFixed(0)}ms`:'—'; const barClass=stepData?stepData.status:'pending';
+    html+=`<div class="tl-row" id="tl-row-${id}-${stepNum}" style="transition-delay:${i*40}ms"><div class="tl-row-label"><div class="tl-step-num ${numClass}">${stepNum}</div><div><div class="tl-row-name">${STEP_NAMES[i]}</div><div class="tl-row-target">${STEP_TARGETS[i]}</div></div></div><div class="tl-track"><div class="tl-nominal" style="left:0;width:${nomPct}%"></div><div class="tl-actual ${barClass}" style="left:0;width:${actualPct}%"></div></div><div class="tl-ms ${msClass}">${msText}</div></div>`;
+  }
+  gantt.innerHTML=html;
+  requestAnimationFrame(()=>{ gantt.querySelectorAll('.tl-row').forEach(r=>r.classList.add('visible')); });
+}
+ 
+function appendLogEntry(event) {
+  const log=document.getElementById('tl-log-list');
+  if (!log) return;
+  const ts=event.ts?event.ts.slice(11,19):'--:--:--';
+  const cls=event.status==='error'?'error':event.status==='skipped'?'skipped':'';
+  const entry=document.createElement('div');
+  entry.className=`tl-log-entry ${cls}`;
+  entry.innerHTML=`<span class="tl-log-ts">${ts}</span><span class="tl-log-step">${event.step}</span><span class="tl-log-detail">${event.name} → ${event.detail||event.target} (${event.actual_ms?.toFixed(0)||'?'}ms)</span>`;
+  log.insertBefore(entry,log.firstChild);
+  while(log.children.length>40)log.removeChild(log.lastChild);
+}
+ 
+async function pollTimelineStats() {
+  // Silently skip if session expired
+  if (sessionExpired) return;
+  const data = await apiFetch('/api/security/mitigation/stats');
+  if (!data?.success) return;
+  setText('tl-kpi-incidents', data.total_incidents||0);
+  setText('tl-kpi-avg-ms',   data.avg_total_ms?data.avg_total_ms.toFixed(0)+'ms':'—');
+  setText('tl-kpi-subs',     data.live_subscribers||0);
+}
+ 
+async function triggerDemo() {
+  if (demoRunning) return;
+  demoRunning=true;
+  const btn = document.getElementById('tl-demo-btn');
+  if (btn) btn.disabled=true;
+  const attackTypes=['sql_injection','brute_force','token_theft','session_hijack','xss_attack'];
+  const ips=['185.220.101.42','91.108.4.99','77.88.55.66','104.21.18.43'];
+  const body={ attack_type:attackTypes[Math.floor(Math.random()*attackTypes.length)], ip:ips[Math.floor(Math.random()*ips.length)], threat_score:(0.88+Math.random()*0.10).toFixed(3), fast:false };
+  const r=await apiFetch('/api/security/mitigation/simulate','POST',body);
+  if(r?.success) toast(`🛡 Demo started — incident #${r.incident_id} — watch the Gantt fill`,'warn');
+  else toast('Demo endpoint not ready — run an attack instead','warn');
+  setTimeout(()=>{ demoRunning=false; if(btn)btn.disabled=false; },8000);
+}
+ 
+function clearTimeline() {
+  tlIncidents={}; tlSelected=null;
+  const ti = document.getElementById('tl-incidents');
+  const tg = document.getElementById('tl-gantt');
+  const tl = document.getElementById('tl-log-list');
+  if(ti) ti.innerHTML='<div class="tl-inc-item" style="justify-content:center;color:var(--text-faint);cursor:default">No incidents yet</div>';
+  if(tg) tg.innerHTML='<div class="tl-gantt-empty"><div class="tl-idle-icon">🛡</div><div>Select an incident above<br>or run a demo</div></div>';
+  if(tl) tl.innerHTML='<div class="tl-log-entry"><span class="tl-log-ts">--:--:--</span><span class="tl-log-step">—</span><span class="tl-log-detail">Log cleared</span></div>';
+  setText('tl-kpi-incidents',0); setText('tl-kpi-avg-ms','—');
+}
+ 
+// ── Phase action buttons ──────────────────────────────────────────────────────
+async function triggerAttack() {
+  const btnNav = document.getElementById('btn-attack');
+  if (btnNav) btnNav.disabled = true;
+  document.querySelectorAll('.cc-btn.btn-attack').forEach(b => b.disabled = true);
+  toast('⚡ Starting attack phase…', 'warn');
+ 
+  let r = await apiFetch('/api/simulation/run-attack', 'POST', {
+    username: 'alice', attack_type: 'token_theft', location: 'moscow', amount: 5000
+  });
+ 
+  if (!r?.success) {
+    r = await apiFetch('/api/simulation/start-attack', 'POST', { note: 'manual_fallback' });
+  }
+ 
+  if (r?.success) {
+    toast('⚡ Attack phase active — monitoring escalation', 'warn');
+  } else {
+    toast('Could not start attack — check you are logged in as admin', 'err');
+    if (btnNav) btnNav.disabled = false;
+    document.querySelectorAll('.cc-btn.btn-attack').forEach(b => b.disabled = false);
+  }
+}
+ 
+async function triggerMitigate() {
+  const btnNav = document.getElementById('btn-mitigate');
+  if (btnNav) btnNav.disabled = true;
+  document.querySelectorAll('.cc-btn.btn-mitigate').forEach(b => b.disabled = true);
+  const r = await apiFetch('/api/simulation/mitigate', 'POST', { node: 'attacker' });
+  if (r?.success) {
+    toast('🛡 Mitigation complete — attacker node isolated');
+  } else {
+    toast('Mitigation error — check console', 'err');
+    if (btnNav) btnNav.disabled = false;
+    document.querySelectorAll('.cc-btn.btn-mitigate').forEach(b => b.disabled = false);
+  }
+}
+ 
+async function triggerReset() {
+  const r = await apiFetch('/api/simulation/reset', 'POST');
+  if (r?.success) {
+    toast('↺ Simulation reset — all nodes restored');
+    feedItems = [];
+    const fl = document.getElementById('feed-list');
+    if (fl) fl.innerHTML = '<div class="feed-item"><span class="fi-time">--:--:--</span><span class="fi-text fi-normal">Feed cleared</span></div>';
+    const ct = document.getElementById('comp-tbody');
+    if (ct) ct.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text-faint);font-family:var(--mono);font-size:10px">Run an attack to populate phase data</td></tr>';
+    const btnNav = document.getElementById('btn-attack');
+    if (btnNav) btnNav.disabled = false;
+    document.querySelectorAll('.cc-btn.btn-attack').forEach(b => b.disabled = false);
+  } else {
+    toast('Reset error — check console', 'err');
+  }
+}
+ 
+// ── Node info ─────────────────────────────────────────────────────────────────
+function selectNode(id, name, role, ip, type, status) {
+  const isolated = (id==='attacker' && currentPhase==='post_mitigation');
+  const ni = document.getElementById('node-info');
+  if (!ni) return;
+  ni.innerHTML = `
+    <div class="ni-title">${name} ${isolated?'⛔ ISOLATED':''}</div>
+    <div class="ni-row"><span>Role</span><span class="ni-val">${role}</span></div>
+    <div class="ni-row"><span>IP</span><span class="ni-val">${ip}</span></div>
+    <div class="ni-row"><span>Type</span><span class="ni-val">${type}</span></div>
+    <div class="ni-row"><span>Status</span><span class="ni-val" style="color:${isolated?'var(--red)':status==='started'?'var(--green)':'var(--amber)'}">${isolated?'SUSPENDED':status}</span></div>`;
+}
+ 
+// ── Traffic particles ─────────────────────────────────────────────────────────
+const ROUTES = [
+  {x1:110,y1:254,x2:150,y2:152},{x1:150,y1:254,x2:150,y2:152},{x1:190,y1:254,x2:150,y2:152},
+  {x1:150,y1:152,x2:70,y2:202},{x1:240,y1:202,x2:150,y2:152},
+];
+function animateTraffic() {
+  const g=document.getElementById('traffic-particles');
+  if (!g) return;
+  g.innerHTML='';
+  const routes=currentPhase==='post_mitigation'?ROUTES.slice(0,4):ROUTES;
+  routes.forEach((r,i)=>{
+    const color=(i===4)?(currentPhase==='under_attack'?'var(--red)':'rgba(255,59,92,.3)'):'var(--green)';
+    const t=Math.random(),x=r.x1+(r.x2-r.x1)*t,y=r.y1+(r.y2-r.y1)*t;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',2);
+    c.setAttribute('fill',color);c.setAttribute('opacity','.7');
+    g.appendChild(c);
+  });
+}
+ 
+function goAdmin()    { window.location.href='/admin'; }
+function goSecurity() { window.location.href='/security-dashboard'; }
+ 
+function toast(msg, type='') {
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  const container = document.getElementById('toast-container');
+  if (container) container.appendChild(el);
+  else document.body.appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+ 
+function setText(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+ </script>
+</body>
+</html>

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokenShield Security Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080C14;
+  --surface:  #0D1520;
+  --panel:    #111C2E;
+  --border:   #1E2F48;
+  --accent:   #00D4FF;
+  --green:    #00E676;
+  --amber:    #FFB300;
+  --red:      #FF1744;
+  --critical: #FF0033;
+  --text:     #E8F0FE;
+  --muted:    #5A7A9F;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Syne', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* GRID SCAN LINES */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 39px,
+    rgba(0,212,255,.025) 39px, rgba(0,212,255,.025) 40px
+  );
+  pointer-events: none; z-index: 0;
+}
+
+/* ── NAV ── */
+.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 56px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(13,21,32,.95);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 14px; font-weight: 600;
+  color: var(--accent);
+}
+.nav-logo .shield { font-size: 20px; }
+.live-indicator {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; color: var(--green);
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.nav-actions { display: flex; gap: 10px; align-items: center; }
+.nav-btn {
+  padding: 6px 14px; border-radius: 4px; font-family: var(--mono);
+  font-size: 11px; font-weight: 500; cursor: pointer; border: none;
+  transition: all .15s;
+}
+.nav-btn.secondary {
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--border);
+}
+.nav-btn.secondary:hover { color: var(--text); border-color: var(--accent); }
+.nav-btn.danger {
+  background: rgba(255,23,68,.12); color: var(--red);
+  border: 1px solid rgba(255,23,68,.3);
+}
+.nav-btn.danger:hover { background: rgba(255,23,68,.22); }
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  min-height: calc(100vh - 56px);
+  position: relative; z-index: 1;
+}
+
+/* ── STATS STRIP ── */
+.stats-strip {
+  grid-column: 1 / -1;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.stat-box {
+  padding: 14px 20px;
+  border-right: 1px solid var(--border);
+  transition: background .2s;
+}
+.stat-box:last-child { border-right: none; }
+.stat-box:hover { background: rgba(0,212,255,.04); }
+.stat-num {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  line-height: 1; margin-bottom: 4px;
+}
+.stat-num.green  { color: var(--green); }
+.stat-num.amber  { color: var(--amber); }
+.stat-num.red    { color: var(--red); }
+.stat-num.critical { color: var(--critical); text-shadow: 0 0 12px var(--critical); }
+.stat-num.accent { color: var(--accent); }
+.stat-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* ── LEFT PANEL: Session List ── */
+.session-panel {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  max-height: calc(100vh - 56px - 57px);
+}
+.panel-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; background: var(--surface); z-index: 10;
+}
+.session-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(30,47,72,.6);
+  cursor: pointer; transition: background .15s;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+}
+.session-item:hover { background: rgba(0,212,255,.05); }
+.session-item.selected { background: rgba(0,212,255,.08); border-left: 2px solid var(--accent); }
+.session-item.critical-item { background: rgba(255,0,51,.06); border-left: 2px solid var(--critical); }
+.session-item.critical-item.selected { background: rgba(255,0,51,.12); }
+.s-user {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-ip {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  grid-column: 1;
+}
+.s-score {
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+  grid-row: 1 / 3;
+}
+.s-score.safe     { color: var(--green); }
+.s-score.low      { color: #7EE090; }
+.s-score.medium   { color: var(--amber); }
+.s-score.high     { color: var(--red); }
+.s-score.critical { color: var(--critical); text-shadow: 0 0 8px var(--critical); }
+.s-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: .5px;
+  padding: 2px 5px; border-radius: 3px; text-transform: uppercase;
+  width: fit-content; margin-top: 3px;
+}
+.s-badge.critical { background: rgba(255,0,51,.2); color: var(--critical); border: 1px solid rgba(255,0,51,.3); }
+.s-badge.high     { background: rgba(255,23,68,.15); color: var(--red); border: 1px solid rgba(255,23,68,.25); }
+.s-badge.medium   { background: rgba(255,179,0,.12); color: var(--amber); border: 1px solid rgba(255,179,0,.2); }
+.s-badge.low      { background: rgba(0,230,118,.1); color: var(--green); border: 1px solid rgba(0,230,118,.15); }
+.s-badge.safe     { background: rgba(0,230,118,.08); color: var(--green); border: 1px solid rgba(0,230,118,.12); }
+
+/* ── RIGHT PANEL: Detail View ── */
+.detail-panel {
+  background: var(--bg);
+  overflow-y: auto;
+  max-height: calc(100vh - 56px - 57px);
+  padding: 20px;
+}
+
+/* ATTACK ALERT BANNER */
+.attack-banner {
+  display: none;
+  background: rgba(255,0,51,.08);
+  border: 1px solid rgba(255,0,51,.4);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  animation: attack-pulse 1.5s ease-in-out infinite;
+}
+.attack-banner.show { display: block; }
+@keyframes attack-pulse {
+  0%,100% { border-color: rgba(255,0,51,.4); box-shadow: none; }
+  50%      { border-color: rgba(255,0,51,.8); box-shadow: 0 0 20px rgba(255,0,51,.15); }
+}
+.banner-title {
+  font-family: var(--mono); font-size: 14px; font-weight: 700;
+  color: var(--critical); margin-bottom: 6px;
+}
+.banner-body { font-size: 13px; color: #FF8A80; line-height: 1.6; }
+
+/* SCORE GAUGE */
+.gauge-section {
+  display: flex; align-items: center; gap: 24px; margin-bottom: 24px;
+}
+.gauge-wrap {
+  position: relative; width: 120px; height: 120px; flex-shrink: 0;
+}
+.gauge-svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+.gauge-track { fill: none; stroke: var(--panel); stroke-width: 8; }
+.gauge-fill  { fill: none; stroke-width: 8; stroke-linecap: round;
+               transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1), stroke .8s; }
+.gauge-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.gauge-score {
+  font-family: var(--mono); font-size: 22px; font-weight: 700;
+}
+.gauge-label { font-size: 9px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+.gauge-info { flex: 1; }
+.gauge-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.gauge-desc  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* INFO CARDS */
+.info-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.info-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px;
+}
+.info-card-title {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.info-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 4px 0; border-bottom: 1px solid rgba(30,47,72,.5);
+}
+.info-row:last-child { border-bottom: none; }
+.info-key   { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.info-val   { font-family: var(--mono); font-size: 11px; color: var(--text);
+               text-align: right; max-width: 60%; word-break: break-all; }
+.info-val.red    { color: var(--red); }
+.info-val.green  { color: var(--green); }
+.info-val.accent { color: var(--accent); }
+.info-val.amber  { color: var(--amber); }
+
+/* THREAT FACTORS */
+.factors-list { margin-bottom: 20px; }
+.factor-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255,23,68,.06);
+  border: 1px solid rgba(255,23,68,.15);
+  border-radius: 5px; margin-bottom: 6px;
+  font-size: 12px; color: #FF8A80;
+}
+.factor-item .fi { flex-shrink: 0; margin-top: 1px; }
+.factor-item.ok {
+  background: rgba(0,230,118,.05);
+  border-color: rgba(0,230,118,.12);
+  color: #69F0AE;
+}
+
+/* TIMELINE */
+.timeline { margin-bottom: 20px; }
+.tl-item {
+  display: flex; gap: 12px; padding: 8px 0;
+  border-bottom: 1px solid rgba(30,47,72,.4);
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 5px;
+}
+.tl-dot.critical { background: var(--critical); box-shadow: 0 0 6px var(--critical); }
+.tl-dot.high     { background: var(--red); }
+.tl-dot.medium   { background: var(--amber); }
+.tl-dot.normal   { background: var(--muted); }
+.tl-action { font-family: var(--mono); font-size: 11px; color: var(--text); margin-bottom: 2px; }
+.tl-meta   { font-size: 10px; color: var(--muted); }
+
+/* SECTION HEADER */
+.section-header {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+  margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
+}
+.section-header::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* EMPTY STATE */
+.empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted); font-family: var(--mono); font-size: 12px;
+}
+
+/* PROGRESS BAR */
+.progress-wrap { margin: 6px 0; }
+.progress-label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted); margin-bottom: 4px;
+}
+.progress-track {
+  height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 2px;
+  transition: width .8s cubic-bezier(.4,0,.2,1), background .4s;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .session-panel { max-height: 280px; border-right: none; border-bottom: 1px solid var(--border); }
+  .stats-strip { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <span class="shield">🛡️</span>
+    TokenShield Security Engine
+  </div>
+  <div class="live-indicator">
+    <div class="live-dot"></div>
+    LIVE — <span id="refresh-count">0</span> polls · last <span id="last-update">—</span>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-btn secondary" onclick="window.location.href='/dashboard'">Dashboard</button>
+    <button class="nav-btn secondary" onclick="window.location.href='/admin'">Admin</button>
+    <button class="nav-btn danger"    onclick="doLogout()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stat-box">
+    <div class="stat-num accent" id="st-active">—</div>
+    <div class="stat-label">Active Sessions</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num amber" id="st-suspicious">—</div>
+    <div class="stat-label">Suspicious</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num red" id="st-high">—</div>
+    <div class="stat-label">High Risk</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num critical" id="st-critical">—</div>
+    <div class="stat-label">Critical</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-num green" id="st-incidents">—</div>
+    <div class="stat-label">Incidents (30m)</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: Session list -->
+  <div class="session-panel">
+    <div class="panel-header">
+      <span>Active Threats</span>
+      <span id="threat-count" style="color: var(--accent)">0</span>
+    </div>
+    <div id="session-list">
+      <div class="empty">Waiting for data…</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Detail view -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="empty" id="empty-state">
+      Select a session from the left panel to view threat analysis<br><br>
+      <span style="font-size:10px;opacity:.5">Auto-populates when attacks are detected</span>
+    </div>
+    <div id="detail-content" style="display:none"></div>
+  </div>
+
+</div>
+
+<script>
+const API = '';
+let TOKEN = '';
+let pollCount = 0;
+let selectedSession = null;
+let feedData = { active_threats: [], recent_incidents: [], summary: {} };
+let adminStats = {};
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  TOKEN = localStorage.getItem('token') || localStorage.getItem('nv_token') || '';
+  if (!TOKEN) { window.location.href = '/login'; return; }
+  poll();
+  setInterval(poll, 1000);
+});
+
+async function api(path) {
+  const r = await fetch(API + path, {
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
+  });
+  if (r.status === 401) { localStorage.clear(); window.location.href = '/login'; return null; }
+  return r.json();
+}
+
+async function poll() {
+  pollCount++;
+  document.getElementById('refresh-count').textContent = pollCount;
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+  try {
+    const [feed, stats] = await Promise.all([
+      api('/api/security/live-feed'),
+      api('/api/admin/stats')
+    ]);
+
+    if (feed?.success)  { feedData   = feed; }
+    if (stats?.success) { adminStats = stats.stats; }
+
+    updateStatsStrip();
+    renderSessionList();
+
+    // Auto-select highest-threat session
+    if (feedData.active_threats.length && !selectedSession) {
+      selectSession(feedData.active_threats[0].session_id);
+    } else if (selectedSession) {
+      refreshDetail(selectedSession);
+    }
+  } catch(e) { console.error('Poll error:', e); }
+}
+
+function updateStatsStrip() {
+  const s = adminStats;
+  if (!s) return;
+  const sum = feedData.summary || {};
+
+  setText('st-active',    s.sessions?.active    ?? '—');
+  setText('st-suspicious', s.sessions?.suspicious ?? '—');
+  setText('st-high',      (sum.high  || 0) + (sum.medium || 0));
+  setText('st-critical',  sum.critical || 0);
+  setText('st-incidents', s.incidents?.recent_24h ?? '—');
+}
+
+function renderSessionList() {
+  const list  = document.getElementById('session-list');
+  const count = document.getElementById('threat-count');
+  const threats = feedData.active_threats || [];
+  count.textContent = threats.length;
+
+  if (!threats.length) {
+    list.innerHTML = '<div class="empty">No active threats detected<br><span style="font-size:10px;opacity:.5">System monitoring all sessions</span></div>';
+    return;
+  }
+
+  list.innerHTML = threats.map(t => {
+    const lvl   = t.threat_level;
+    const pct   = (t.anomaly_score * 100).toFixed(1);
+    const isSelected = t.session_id === selectedSession;
+    return `
+      <div class="session-item ${lvl === 'critical' ? 'critical-item' : ''} ${isSelected ? 'selected' : ''}"
+           onclick="selectSession(${t.session_id})">
+        <div class="s-user">${t.username}</div>
+        <div class="s-score ${lvl}" style="grid-row:1/3">${pct}%</div>
+        <div class="s-ip">${t.ip} · ${t.city}, ${t.country}</div>
+        <div class="s-badge ${lvl}">${lvl}</div>
+      </div>`;
+  }).join('');
+}
+
+async function selectSession(sessionId) {
+  selectedSession = sessionId;
+  renderSessionList();
+  await refreshDetail(sessionId);
+}
+
+async function refreshDetail(sessionId) {
+  const threat = (feedData.active_threats || []).find(t => t.session_id === sessionId);
+  if (!threat) return;
+
+  // Try to get full profile
+  let profile = null;
+  try {
+    const r = await fetch(`${API}/api/attack/threat-status/${sessionId}`, {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    if (r.ok) profile = await r.json();
+  } catch(e) {}
+
+  const session   = profile?.session || {};
+  const logs      = profile?.behavior_logs || [];
+  const incidents = profile?.incidents || [];
+
+  renderDetail(threat, session, logs, incidents);
+}
+
+function renderDetail(threat, session, logs, incidents) {
+  const empty   = document.getElementById('empty-state');
+  const content = document.getElementById('detail-content');
+  empty.style.display   = 'none';
+  content.style.display = 'block';
+
+  const score  = threat.anomaly_score;
+  const pct    = Math.round(score * 100);
+  const lvl    = threat.threat_level;
+  const isRevoked = session.is_active === false;
+
+  // Gauge circumference (r=44): 2π×44 ≈ 276
+  const C      = 276;
+  const offset = C - (C * score);
+  const gaugeColor = lvl === 'critical' ? '#FF0033' :
+                     lvl === 'high'     ? '#FF1744' :
+                     lvl === 'medium'   ? '#FFB300' : '#00E676';
+
+  const factorRows = (logs.length > 0) ? buildFactors(threat, session) : [];
+
+  content.innerHTML = `
+    <!-- ATTACK BANNER -->
+    <div class="attack-banner ${score >= 0.70 ? 'show' : ''}">
+      <div class="banner-title">🚨 SECURITY BREACH DETECTED — ${threat.country}</div>
+      <div class="banner-body">
+        Unauthorized access from <strong>${threat.ip}</strong> (${threat.city}, ${threat.country}).
+        ${isRevoked ? '✅ Session terminated. Victim locked down — 2FA required.' : 'Session is ACTIVE. Click Revoke to terminate immediately.'}
+      </div>
+    </div>
+
+    <!-- GAUGE -->
+    <div class="gauge-section">
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 120 120">
+          <circle class="gauge-track" cx="60" cy="60" r="44"/>
+          <circle class="gauge-fill" cx="60" cy="60" r="44"
+            stroke="${gaugeColor}"
+            stroke-dasharray="${C}"
+            stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-score" style="color:${gaugeColor}">${pct}%</div>
+          <div class="gauge-label">Risk Score</div>
+        </div>
+      </div>
+      <div class="gauge-info">
+        <div class="gauge-title" style="color:${gaugeColor}">${levelTitle(lvl)}</div>
+        <div class="gauge-desc">${levelDesc(lvl, threat)}</div>
+        <div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap">
+          ${!isRevoked ? `
+            <button class="nav-btn danger" onclick="revokeSession(${threat.session_id})">
+              ⛔ Revoke Session
+            </button>` : ''}
+          <span class="s-badge ${lvl}" style="padding: 5px 10px">${isRevoked ? '✓ TERMINATED' : 'ACTIVE'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCORE BAR BREAKDOWN -->
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Overall Risk</span><span>${pct}%</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%; background:${gaugeColor}"></div></div>
+    </div>
+
+    <!-- INFO GRID -->
+    <div class="info-grid" style="margin-top:16px">
+      <div class="info-card">
+        <div class="info-card-title">Attacker Identity</div>
+        <div class="info-row"><span class="info-key">IP Address</span>
+          <span class="info-val red">${threat.ip}</span></div>
+        <div class="info-row"><span class="info-key">Location</span>
+          <span class="info-val red">${threat.city}, ${threat.country}</span></div>
+        <div class="info-row"><span class="info-key">Threat Level</span>
+          <span class="info-val ${lvl}">${lvl.toUpperCase()}</span></div>
+        <div class="info-row"><span class="info-key">Session ID</span>
+          <span class="info-val accent">#${threat.session_id}</span></div>
+        <div class="info-row"><span class="info-key">Session Active</span>
+          <span class="info-val ${isRevoked ? 'green' : 'red'}">${isRevoked ? 'NO (Revoked)' : 'YES'}</span></div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Timeline</div>
+        <div class="info-row"><span class="info-key">First Seen</span>
+          <span class="info-val">${relTime(threat.last_activity)}</span></div>
+        <div class="info-row"><span class="info-key">Last Active</span>
+          <span class="info-val">${relTime(threat.last_activity)}</span></div>
+        <div class="info-row"><span class="info-key">Actions</span>
+          <span class="info-val amber">${logs.length} logged</span></div>
+        <div class="info-row"><span class="info-key">Incidents</span>
+          <span class="info-val red">${incidents.length}</span></div>
+        <div class="info-row"><span class="info-key">Victim</span>
+          <span class="info-val accent">${threat.username}</span></div>
+      </div>
+    </div>
+
+    <!-- THREAT FACTORS -->
+    ${factorRows.length ? `
+    <div class="section-header">Detection Factors</div>
+    <div class="factors-list">${factorRows.join('')}</div>` : ''}
+
+    <!-- INCIDENT LOG -->
+    ${incidents.length ? `
+    <div class="section-header">Incident Log</div>
+    <div class="timeline">
+      ${incidents.map(i => `
+        <div class="tl-item">
+          <div class="tl-dot ${i.severity}"></div>
+          <div>
+            <div class="tl-action">${i.incident_type.replace(/_/g,' ').toUpperCase()}</div>
+            <div class="tl-meta">${i.timestamp} · Score: ${(i.anomaly_score*100).toFixed(1)}% · ${i.action_taken}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    <!-- BEHAVIOR LOG -->
+    ${logs.length ? `
+    <div class="section-header">Recent Actions</div>
+    <div class="timeline">
+      ${logs.slice(0,12).map(l => `
+        <div class="tl-item">
+          <div class="tl-dot ${actionSeverity(l.action_type)}"></div>
+          <div>
+            <div class="tl-action">${l.action_type.replace(/_/g,' ')}</div>
+            <div class="tl-meta">${l.timestamp} · ${l.ip_address || '—'}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+  `;
+}
+
+// ── HELPERS ──
+function buildFactors(threat, session) {
+  const rows = [];
+  const score = threat.anomaly_score;
+
+  if (score >= 0.30) rows.push(factor('IP address mismatch — different from victim session', true));
+  if (score >= 0.50) rows.push(factor('User-agent mismatch — spoofed browser signature', true));
+  if (score >= 0.65) rows.push(factor('Rapid-fire requests — automated/bot pattern detected', true));
+  if (score >= 0.70) rows.push(factor('Large transfer attempt — amount exceeds normal threshold', true));
+  if (score >= 0.75) rows.push(factor(`High-risk geolocation — ${threat.country}`, true));
+  if (score >= 0.80) rows.push(factor('Known VPN/proxy network detected', true));
+  if (score  < 0.30) rows.push(factor('No threat indicators detected', false));
+
+  return rows;
+}
+
+function factor(text, isThreaten) {
+  return `<div class="factor-item ${isThreaten ? '' : 'ok'}">
+    <span class="fi">${isThreaten ? '⚠' : '✓'}</span>
+    <span>${text}</span>
+  </div>`;
+}
+
+function levelTitle(lvl) {
+  return { critical: '🔴 Critical Breach', high: '🟠 High Risk', medium: '🟡 Suspicious', low: '🟢 Low Risk', safe: '✅ Secure' }[lvl] || lvl;
+}
+function levelDesc(lvl, t) {
+  if (lvl === 'critical') return `Active attack from ${t.city}, ${t.country}. All sessions auto-terminated. Victim requires 2FA to re-login.`;
+  if (lvl === 'high')     return `Suspicious activity from ${t.city}. Transfer attempts blocked. Close monitoring active.`;
+  if (lvl === 'medium')   return `Elevated signals detected from ${t.ip}. Logging all actions.`;
+  return `Low-level anomaly from ${t.ip}. Monitoring in background.`;
+}
+function actionSeverity(action) {
+  if (!action) return 'normal';
+  const a = action.toLowerCase();
+  if (a.includes('fraudulent') || a.includes('breach') || a.includes('critical')) return 'critical';
+  if (a.includes('suspicious') || a.includes('enumeration') || a.includes('rapid')) return 'high';
+  if (a.includes('transfer') || a.includes('blocked')) return 'medium';
+  return 'normal';
+}
+function relTime(ts) {
+  if (!ts) return '—';
+  const diff = Date.now() - new Date(ts).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m/60)}h ago`;
+}
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+async function revokeSession(sessionId) {
+  if (!confirm('Revoke this session and terminate all attacker access?')) return;
+  try {
+    const r = await fetch(`${API}/api/admin/sessions/${sessionId}/revoke`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Admin revoked via Security Engine' })
+    });
+    const d = await r.json();
+    if (d.success) {
+      alert('Session revoked. Victim will be redirected to login with 2FA.');
+      poll();
+    }
+  } catch(e) { alert('Revoke failed: ' + e.message); }
+}
+
+async function doLogout() {
+  try {
+    await fetch(`${API}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+  } catch(e) {}
+  localStorage.clear();
+  window.location.href = '/login';
+}
+</script>
+</body>
+</html>

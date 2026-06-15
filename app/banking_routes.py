@@ -1,7 +1,7 @@
 """
 NeoVault Banking Routes
 API endpoints for banking operations with TokenShield integration
-UPDATED - Compatible with BehaviorLog model
+UPDATED - Compatible with BehaviorLog model + attack-status & demo-account routes
 """
 
 from flask import Blueprint, request, jsonify, current_app
@@ -759,6 +759,135 @@ def get_dashboard_summary(current_user, current_session):
             'success': False,
             'message': 'Failed to fetch dashboard summary'
         }), 500
+
+
+# ============================================================================
+# ATTACK STATUS & DEMO ACCOUNT  (TokenShield Demo Routes)
+# ============================================================================
+
+@banking_bp.route('/attack-status', methods=['GET'])
+def attack_status():
+    """
+    Returns current simulation phase so the banking dashboard
+    can show/hide the attack alert banner.
+
+    No auth required — the banner is visible to all logged-in users.
+    Called every 3 seconds by the banking dashboard JS.
+
+    Response:
+    {
+        "phase": "normal" | "under_attack" | "post_mitigation",
+        "under_attack": true | false,
+        "message": "...",
+        "attacker_ip": "185.220.101.42"   (only when under_attack)
+    }
+    """
+    try:
+        from simulation.network_controller import resource_monitor
+        snapshot = resource_monitor.current()
+        phase = snapshot.get("phase", "normal")
+    except Exception:
+        phase = "normal"
+
+    # Get latest incident for attacker details
+    attacker_ip  = None
+    attack_type  = None
+    threat_score = None
+
+    if phase == "under_attack":
+        try:
+            from datetime import timedelta
+            cutoff = datetime.utcnow() - timedelta(minutes=5)
+            inc = (IncidentLog.query
+                   .filter(IncidentLog.timestamp >= cutoff)
+                   .order_by(IncidentLog.timestamp.desc())
+                   .first())
+            if inc:
+                attacker_ip  = inc.ip_address
+                attack_type  = inc.incident_type
+                threat_score = round(inc.anomaly_score * 100)
+        except Exception:
+            pass
+
+    messages = {
+        "normal":          "All systems secure. TokenShield is monitoring your session.",
+        "under_attack":    "⚠️ Security threat detected on your account. TokenShield is blocking the attack.",
+        "post_mitigation": "✅ Threat neutralised. Your account is secure again.",
+    }
+
+    return jsonify({
+        "success":      True,
+        "phase":        phase,
+        "under_attack": phase == "under_attack",
+        "message":      messages.get(phase, ""),
+        "attacker_ip":  attacker_ip,
+        "attack_type":  attack_type,
+        "threat_score": threat_score,
+    }), 200
+
+
+@banking_bp.route('/demo-account', methods=['GET'])
+def demo_account():
+    """
+    Returns a single fixed demo account for the banking dashboard.
+    Always shows exactly ONE checking account with a fixed starting
+    balance so the demo is clean and predictable.
+
+    The balance is stored in the DB — this just ensures only one
+    account is returned and it has the right display name.
+    """
+    import os
+    import jwt as pyjwt
+
+    # Auth
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return jsonify({"success": False, "message": "Auth required"}), 401
+    token = auth[7:]
+    try:
+        secret  = os.getenv("JWT_SECRET_KEY", "jwt-secret-change-in-production")
+        payload = pyjwt.decode(token, secret, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+    except Exception:
+        return jsonify({"success": False, "message": "Invalid token"}), 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"success": False, "message": "User not found"}), 404
+
+    # Get or create the ONE demo checking account
+    import random
+    import string
+    account = (BankAccount.query
+               .filter_by(user_id=user_id, account_type="checking")
+               .first())
+
+    if not account:
+        acct_num = "NV" + "".join(random.choices(string.digits, k=8))
+        account  = BankAccount(
+            user_id        = user_id,
+            account_number = acct_num,
+            account_type   = "checking",
+            balance        = 10000.00,
+            currency       = "INR",
+            status         = "active",
+        )
+        db.session.add(account)
+        db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "account": {
+            "id":             account.id,
+            "account_number": account.account_number,
+            "account_type":   "checking",
+            "balance":        float(account.balance),
+            "currency":       "INR",
+            "status":         account.status,
+            "display_name":   "Alice's Checking Account",
+            "owner":          "Alice",
+        }
+    }), 200
 
 
 # ============================================================================
